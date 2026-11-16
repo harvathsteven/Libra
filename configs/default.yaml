@@ -1,0 +1,25 @@
+# Primary run config. Model choice pending HUMAN GATE G0.
+seed: 42
+model:
+  id: microsoft/Phi-3.5-mini-instruct
+  revision: 2fe192450127e6a83f7441aef6e3ca586c338b77
+  dtype: float16
+  device: cuda
+layer:
+  # Set after Phase 4 vector validation; null until then.
+  L_star: null
+paths:
+  stimuli_dir: stimuli
+  results_dir: results
+  figures_dir: figures
+scoring:
+  # Prompt format finalized on dev personas only (Phase 4).
+  assistant_prefill: "Answer:"
+  min_option_mass_dev: 0.80
+  drop_item_option_mass: 0.50
+  drop_condition_item_frac: 0.20
+analysis:
+  bootstrap_n: 10000
+  bootstrap_seed: 42
+  null_vectors: 1000
+  alpha: 0.05

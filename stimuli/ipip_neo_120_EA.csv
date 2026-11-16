@@ -1,0 +1,49 @@
+item_id,trait,facet,text,keying
+IPIP-E-E1-01,E,E1,Make friends easily.,+
+IPIP-E-E1-02,E,E1,Feel comfortable around people.,+
+IPIP-E-E1-03,E,E1,Avoid contacts with others.,-
+IPIP-E-E1-04,E,E1,Keep others at a distance.,-
+IPIP-E-E2-05,E,E2,Love large parties.,+
+IPIP-E-E2-06,E,E2,Talk to a lot of different people at parties.,+
+IPIP-E-E2-07,E,E2,Prefer to be alone.,-
+IPIP-E-E2-08,E,E2,Avoid crowds.,-
+IPIP-E-E3-09,E,E3,Take charge.,+
+IPIP-E-E3-10,E,E3,Try to lead others.,+
+IPIP-E-E3-11,E,E3,Take control of things.,+
+IPIP-E-E3-12,E,E3,Wait for others to lead the way.,-
+IPIP-E-E4-13,E,E4,Am always busy.,+
+IPIP-E-E4-14,E,E4,Am always on the go.,+
+IPIP-E-E4-15,E,E4,Do a lot in my spare time.,+
+IPIP-E-E4-16,E,E4,Like to take it easy.,-
+IPIP-E-E5-17,E,E5,Love excitement.,+
+IPIP-E-E5-18,E,E5,Seek adventure.,+
+IPIP-E-E5-19,E,E5,Enjoy being reckless.,+
+IPIP-E-E5-20,E,E5,Act wild and crazy.,+
+IPIP-E-E6-21,E,E6,Radiate joy.,+
+IPIP-E-E6-22,E,E6,Have a lot of fun.,+
+IPIP-E-E6-23,E,E6,Love life.,+
+IPIP-E-E6-24,E,E6,Look at the bright side of life.,+
+IPIP-A-A1-25,A,A1,Trust others.,+
+IPIP-A-A1-26,A,A1,Believe that others have good intentions.,+
+IPIP-A-A1-27,A,A1,Trust what people say.,+
+IPIP-A-A1-28,A,A1,Distrust people.,-
+IPIP-A-A2-29,A,A2,Use others for my own ends.,-
+IPIP-A-A2-30,A,A2,Cheat to get ahead.,-
+IPIP-A-A2-31,A,A2,Take advantage of others.,-
+IPIP-A-A2-32,A,A2,Obstruct others' plans.,-
+IPIP-A-A3-33,A,A3,Am concerned about others.,+
+IPIP-A-A3-34,A,A3,Love to help others.,+
+IPIP-A-A3-35,A,A3,Am indifferent to the feelings of others.,-
+IPIP-A-A3-36,A,A3,Take no time for others.,-
+IPIP-A-A4-37,A,A4,Love a good fight.,-
+IPIP-A-A4-38,A,A4,Yell at people.,-
+IPIP-A-A4-39,A,A4,Insult people.,-
+IPIP-A-A4-40,A,A4,Get back at others.,-
+IPIP-A-A5-41,A,A5,Believe that I am better than others.,-
+IPIP-A-A5-42,A,A5,Think highly of myself.,-
+IPIP-A-A5-43,A,A5,Have a high opinion of myself.,-
+IPIP-A-A5-44,A,A5,Boast about my virtues.,-
+IPIP-A-A6-45,A,A6,Sympathize with the homeless.,+
+IPIP-A-A6-46,A,A6,Feel sympathy for those who are worse off than myself.,+
+IPIP-A-A6-47,A,A6,Am not interested in other people's problems.,-
+IPIP-A-A6-48,A,A6,Try not to think about the needy.,-

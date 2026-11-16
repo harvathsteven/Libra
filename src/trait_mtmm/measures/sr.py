@@ -1,0 +1,1 @@
+"""Self-report (IPIP) scoring."""

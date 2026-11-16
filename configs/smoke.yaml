@@ -1,0 +1,28 @@
+# CPU smoke tests only. Numbers from this config are meaningless and must not be reported.
+seed: 0
+model:
+  id: HuggingFaceTB/SmolLM2-135M-Instruct
+  revision: 12fd25f77366fa6b3b4b768ec3050bf629380bac
+  dtype: float32
+  device: cpu
+layer:
+  L_star: null
+paths:
+  stimuli_dir: stimuli
+  results_dir: results
+  figures_dir: figures
+smoke:
+  max_sr_items: 2
+  max_bc_items: 2
+  max_probes: 2
+  max_personas: 2
+scoring:
+  assistant_prefill: "Answer:"
+  min_option_mass_dev: 0.80
+  drop_item_option_mass: 0.50
+  drop_condition_item_frac: 0.20
+analysis:
+  bootstrap_n: 100
+  bootstrap_seed: 0
+  null_vectors: 10
+  alpha: 0.05

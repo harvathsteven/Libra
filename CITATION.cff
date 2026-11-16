@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "Libra: Trait MTMM Pilot"
+type: software
+authors:
+  - family-names: Harvath
+    given-names: Steven
+version: 0.1.0
+abstract: >-
+  A zero-cost construct-validity pilot comparing self-report, behavioral-choice,
+  and internal-projection personality measures on one small open-weight language model.
+license: MIT

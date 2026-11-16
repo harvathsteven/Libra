@@ -1,0 +1,23 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+.env
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+*.pt
+*.bin
+*.safetensors
+results/**/*.parquet
+!results/.gitkeep
+# Local HF cache / tokens never committed
+.hf_token
+huggingface/
+*.parquet
+.DS_Store

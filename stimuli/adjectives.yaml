@@ -1,0 +1,151 @@
+meta:
+  sources:
+  - Goldberg (1992) Big Five unipolar markers
+  - Saucier (1994) Mini-Markers (supplement to reach n>=16/pole)
+  seed: 42
+extraversion:
+  high:
+    extraction:
+    - adventurous
+    - enthusiastic
+    - extraverted
+    - sociable
+    - talkative
+    - unrestrained
+    - vigorous
+    - warm
+    test:
+    - active
+    - assertive
+    - bold
+    - daring
+    - energetic
+    - outgoing
+    - spontaneous
+    - verbal
+    all:
+    - active
+    - adventurous
+    - assertive
+    - bold
+    - daring
+    - energetic
+    - enthusiastic
+    - extraverted
+    - outgoing
+    - sociable
+    - spontaneous
+    - talkative
+    - unrestrained
+    - verbal
+    - vigorous
+    - warm
+  low:
+    extraction:
+    - aloof
+    - inhibited
+    - introverted
+    - meek
+    - passive
+    - reserved
+    - shy
+    - silent
+    test:
+    - bashful
+    - lethargic
+    - quiet
+    - solitary
+    - timid
+    - unadventurous
+    - untalkative
+    - withdrawn
+    all:
+    - aloof
+    - bashful
+    - inhibited
+    - introverted
+    - lethargic
+    - meek
+    - passive
+    - quiet
+    - reserved
+    - shy
+    - silent
+    - solitary
+    - timid
+    - unadventurous
+    - untalkative
+    - withdrawn
+agreeableness:
+  high:
+    extraction:
+    - agreeable
+    - charitable
+    - courteous
+    - softhearted
+    - sympathetic
+    - tolerant
+    - trustful
+    - warmhearted
+    test:
+    - considerate
+    - cooperative
+    - forgiving
+    - generous
+    - helpful
+    - kind
+    - pleasant
+    - warm
+    all:
+    - agreeable
+    - charitable
+    - considerate
+    - cooperative
+    - courteous
+    - forgiving
+    - generous
+    - helpful
+    - kind
+    - pleasant
+    - softhearted
+    - sympathetic
+    - tolerant
+    - trustful
+    - warm
+    - warmhearted
+  low:
+    extraction:
+    - cold
+    - critical
+    - crude
+    - faultfinding
+    - harsh
+    - quarrelsome
+    - stubborn
+    - unsympathetic
+    test:
+    - antagonistic
+    - demanding
+    - distrustful
+    - rude
+    - selfish
+    - uncharitable
+    - uncooperative
+    - unkind
+    all:
+    - antagonistic
+    - cold
+    - critical
+    - crude
+    - demanding
+    - distrustful
+    - faultfinding
+    - harsh
+    - quarrelsome
+    - rude
+    - selfish
+    - stubborn
+    - uncharitable
+    - uncooperative
+    - unkind
+    - unsympathetic
