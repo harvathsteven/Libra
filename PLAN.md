@@ -145,4 +145,5 @@ Full specifications for stimuli (Section 4), measurement (Section 5), phases and
 | 0 Verification and setup | Done (G0 passed; TRAIT verified) |
 | 1 Core library | Done |
 | 2 Stimuli | Done |
-| 3–8 | Not started |
+| 3 Measures and vectors | Done (smoke E2E) |
+| 4–8 | Not started |

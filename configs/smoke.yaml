@@ -16,6 +16,9 @@ smoke:
   max_bc_items: 2
   max_probes: 2
   max_personas: 2
+  n_triples: 2
+  max_extraction_questions: 2
+
 scoring:
   assistant_prefill: "Answer:"
   min_option_mass_dev: 0.80

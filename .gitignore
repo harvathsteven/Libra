@@ -14,8 +14,10 @@ venv/
 *.pt
 *.bin
 *.safetensors
-results/**/*.parquet
+results/**
 !results/.gitkeep
+figures/*.png
+!figures/.gitkeep
 # Local HF cache / tokens never committed
 .hf_token
 huggingface/

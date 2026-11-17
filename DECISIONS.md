@@ -109,6 +109,12 @@ Owner confirmed: Phi-3.5-mini-instruct; TRAIT via HF token (stored only in local
 - Implemented `model.py` (load, chat format, hidden states, residual-add steering hooks) and `scoring.py` (option-token discovery, renormalization, SR expected value, reverse keying, BC high-trait probability, order averaging).
 - Acceptance: `pytest tests/` passes on CPU with smoke model.
 
+### Phase 3 — measures and smoke E2E (2026-11-16)
+
+- Implemented SR/BC/IP measures, vector extraction (mean-difference, L* by held-out d', steering curves), CLI (`extract`, `pilot`, `smoke`, `figures`, `analyze`).
+- Smoke gates are not enforced (`enforce_gates=False`); smoke-model validation numbers are meaningless and must not be reported.
+- Acceptance: `python -m trait_mtmm.run smoke --config configs/smoke.yaml` writes `results/pilot_smoke/condition_scores.parquet` and six `figures/smoke_*.png`. Fast pytest suite passes (`-m 'not slow'`).
+
 ### Phase 2 — stimuli (2026-11-16)
 
 - **Adjectives:** Goldberg (1992) unipolar Factor I/II poles alone yield only 10/pole; supplemented with Saucier (1994) Mini-Markers and additional Goldberg bipolar-pole adjectives to reach 16/pole. Split extraction/test with seed 42; disjointness enforced by tests.
