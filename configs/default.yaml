@@ -1,4 +1,4 @@
-# Primary run config. Model choice pending HUMAN GATE G0.
+# Primary run config (Phi-3.5-mini). Requires a 16 GB-class GPU.
 seed: 42
 model:
   id: microsoft/Phi-3.5-mini-instruct
@@ -6,14 +6,14 @@ model:
   dtype: float16
   device: cuda
 layer:
-  # Set after Phase 4 vector validation; null until then.
+  # Set automatically by `trait-mtmm phase4` / extract when validation passes.
   L_star: null
 paths:
   stimuli_dir: stimuli
   results_dir: results
   figures_dir: figures
 scoring:
-  # Prompt format finalized on dev personas only (Phase 4).
+  # Prompt format finalized on dev personas only (Phase 4). Log changes in DECISIONS.md.
   assistant_prefill: "Answer:"
   min_option_mass_dev: 0.80
   drop_item_option_mass: 0.50

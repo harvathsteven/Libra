@@ -109,6 +109,15 @@ Owner confirmed: Phi-3.5-mini-instruct; TRAIT via HF token (stored only in local
 - Implemented `model.py` (load, chat format, hidden states, residual-add steering hooks) and `scoring.py` (option-token discovery, renormalization, SR expected value, reverse keying, BC high-trait probability, order averaging).
 - Acceptance: `pytest tests/` passes on CPU with smoke model.
 
+### Phase 4 — GPU extract + dev pilot (2026-11-16)
+
+- **Local GPU:** none (cuda/mps unavailable). Agent cannot run Phi-3.5 extract/pilot locally.
+- **Hand-off:** `notebooks/run_kaggle.ipynb` clones/installs and runs `phase4` (`extract` → `pilot` → `diagnose`) on a free 16 GB GPU.
+- **CLI:** `python -m trait_mtmm.run phase4 --config configs/default.yaml` (also `extract`, `pilot`, `diagnose` separately).
+- On successful extract, `layer.L_star` is written into `configs/default.yaml`.
+- **Owner action:** run the notebook (or equivalent Colab), download `libra_phase4_results.zip`, merge into the repo, confirm both `all_gates_passed` and `phase4_acceptance_passed`, then continue to Phase 5.
+- Prompt-format retries (max 2): edit `scoring.assistant_prefill` only, re-run `pilot` + `diagnose`, log each attempt here.
+
 ### Phase 3 — measures and smoke E2E (2026-11-16)
 
 - Implemented SR/BC/IP measures, vector extraction (mean-difference, L* by held-out d', steering curves), CLI (`extract`, `pilot`, `smoke`, `figures`, `analyze`).

@@ -1,4 +1,4 @@
-"""CLI entrypoint: extract, pilot, main, smoke, analyze, figures."""
+"""CLI entrypoint: extract, pilot, diagnose, phase4, main, smoke, analyze, figures."""
 
 from __future__ import annotations
 
@@ -11,6 +11,8 @@ import pandas as pd
 import torch
 
 from trait_mtmm.analysis import analysis_summary, mtmm_correlation, wide_condition_table
+from trait_mtmm.config_utils import set_L_star
+from trait_mtmm.diagnose import diagnose_pilot
 from trait_mtmm.figures import write_smoke_figures
 from trait_mtmm.measures.bc import aggregate_bc, run_bc_for_persona
 from trait_mtmm.measures.ip import aggregate_ip, run_ip_for_persona
@@ -20,6 +22,7 @@ from trait_mtmm.provenance import (
     figures_dir,
     load_config,
     provenance_dict,
+    repo_root,
     results_dir,
     stimuli_dir,
     write_json,
@@ -74,7 +77,6 @@ def cmd_extract(cfg: dict[str, Any], *, enforce_gates: bool | None = None) -> di
     sr_items = load_ipip(
         stim, max_items=limits.get("max_sr_items") if is_smoke else None
     )
-    # Only E+A items already; for steering use items matching each trait
 
     summary = extract_and_validate(
         loaded,
@@ -87,11 +89,15 @@ def cmd_extract(cfg: dict[str, Any], *, enforce_gates: bool | None = None) -> di
         assistant_prefill=cfg["scoring"]["assistant_prefill"],
         enforce_gates=enforce_gates,
     )
-    # Persist L* into a sidecar for later stages (config file unchanged)
     write_json(
         out / "provenance.json",
         {**provenance_dict(cfg, stage="extract"), "summary": summary},
     )
+    # Freeze L* into the active config when gates pass (Phase 4).
+    if summary.get("all_gates_passed") and not is_smoke:
+        cfg_path = Path(cfg["_config_path"])
+        set_L_star(cfg_path, int(summary["L_star"]))
+        print(f"Wrote layer.L_star={summary['L_star']} to {cfg_path}")
     print(json.dumps({"extract": summary}, indent=2))
     return summary
 
@@ -126,7 +132,6 @@ def cmd_pilot(cfg: dict[str, Any]) -> Path:
         device=cfg["model"]["device"],
     )
     L_star, vectors, _ = _load_L_star_and_vectors(cfg)
-    # hidden_states index = block_index + 1
     layer_hidden_index = L_star + 1
 
     which = "test" if is_smoke else "dev"
@@ -194,11 +199,45 @@ def cmd_pilot(cfg: dict[str, Any]) -> Path:
             **provenance_dict(cfg, stage="pilot"),
             "L_star": L_star,
             "n_personas": len(personas),
+            "assistant_prefill": prefill,
             "analysis": summary,
         },
     )
     print(json.dumps({"pilot": {"n_personas": len(personas), "L_star": L_star, **summary}}, indent=2))
     return out
+
+
+def cmd_diagnose(cfg: dict[str, Any]) -> dict[str, Any]:
+    is_smoke = "smoke" in cfg
+    pilot_dir = results_dir(cfg) / ("pilot_smoke" if is_smoke else "pilot")
+    report = diagnose_pilot(
+        pilot_dir,
+        min_option_mass=float(cfg["scoring"]["min_option_mass_dev"]),
+    )
+    print(json.dumps({"diagnose": report}, indent=2))
+    if not report["phase4_acceptance_passed"]:
+        print(
+            "Phase 4 diagnostics FAILED. Adjust scoring.assistant_prefill in the "
+            "config (dev only), re-run pilot, and log the change in DECISIONS.md. "
+            "Stop after two reasonable prompt-format attempts."
+        )
+    return report
+
+
+def cmd_phase4(cfg: dict[str, Any]) -> None:
+    """GPU Phase 4: extract (gates on) → pilot (dev) → diagnose."""
+    if "smoke" in cfg:
+        raise SystemExit("phase4 requires configs/default.yaml (not smoke)")
+    summary = cmd_extract(cfg, enforce_gates=True)
+    if not summary.get("all_gates_passed"):
+        raise SystemExit("Extract validation failed; not running pilot.")
+    # Reload config in case L* was written
+    cfg = load_config(cfg["_config_path"])
+    cmd_pilot(cfg)
+    report = cmd_diagnose(cfg)
+    if not report["phase4_acceptance_passed"]:
+        raise SystemExit(1)
+    print("Phase 4 acceptance passed.")
 
 
 def cmd_figures(cfg: dict[str, Any]) -> list[Path]:
@@ -224,24 +263,22 @@ def cmd_figures(cfg: dict[str, Any]) -> list[Path]:
     if summary_path.exists():
         L_star = json.loads(summary_path.read_text(encoding="utf-8")).get("L_star")
 
-    if is_smoke:
-        paths = write_smoke_figures(
-            figures=fig_dir,
-            corr=corr,
-            dprime_df=dprime_df,
-            steer_df=steer_df,
-            wide=wide,
-            L_star=L_star,
-        )
-    else:
-        paths = write_smoke_figures(
-            figures=fig_dir,
-            corr=corr,
-            dprime_df=dprime_df,
-            steer_df=steer_df,
-            wide=wide,
-            L_star=L_star,
-        )
+    paths = write_smoke_figures(
+        figures=fig_dir,
+        corr=corr,
+        dprime_df=dprime_df,
+        steer_df=steer_df,
+        wide=wide,
+        L_star=L_star,
+    )
+    # Rename smoke_* only for smoke; for phase4 keep names under figures/phase4_*
+    if not is_smoke:
+        renamed = []
+        for p in paths:
+            new = fig_dir / p.name.replace("smoke_", "phase4_")
+            p.replace(new)
+            renamed.append(new)
+        paths = renamed
     print(json.dumps({"figures": [str(p) for p in paths]}, indent=2))
     return paths
 
@@ -259,7 +296,7 @@ def cmd_smoke(cfg: dict[str, Any]) -> None:
 
 def cmd_main(cfg: dict[str, Any]) -> None:
     raise SystemExit(
-        "main run is Phase 6 (after preregistration). Use pilot/smoke until then."
+        "main run is Phase 6 (after preregistration). Use phase4/pilot until then."
     )
 
 
@@ -276,7 +313,16 @@ def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="trait-mtmm")
     parser.add_argument(
         "command",
-        choices=["extract", "pilot", "main", "analyze", "figures", "smoke"],
+        choices=[
+            "extract",
+            "pilot",
+            "diagnose",
+            "phase4",
+            "main",
+            "analyze",
+            "figures",
+            "smoke",
+        ],
     )
     parser.add_argument("--config", default="configs/default.yaml")
     args = parser.parse_args(argv)
@@ -285,6 +331,8 @@ def main(argv: list[str] | None = None) -> None:
     dispatch = {
         "extract": lambda: cmd_extract(cfg),
         "pilot": lambda: cmd_pilot(cfg),
+        "diagnose": lambda: cmd_diagnose(cfg),
+        "phase4": lambda: cmd_phase4(cfg),
         "main": lambda: cmd_main(cfg),
         "analyze": lambda: cmd_analyze(cfg),
         "figures": lambda: cmd_figures(cfg),

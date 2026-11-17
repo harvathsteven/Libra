@@ -2,7 +2,7 @@
 
 Zero-cost construct-validity study of LLM personality measures: **self-report (SR)**, **behavioral choice (BC)**, and **internal projection (IP)** on one small open-weight chat model under shared persona conditions.
 
-**Status:** Phases 0–3 complete (G0 passed; stimuli + measures + smoke E2E). Phase 4 next (GPU extraction / dev pilot). Do not publish. Do not run the main test set until after preregistration (`prereg-v1`).
+**Status:** Phases 0–3 complete. Phase 4 ready but needs a GPU run (`notebooks/run_kaggle.ipynb`). Do not publish. Do not run the main test set until after preregistration (`prereg-v1`).
 
 ## Research question
 
@@ -42,7 +42,26 @@ python -m trait_mtmm.run figures --config configs/smoke.yaml
 
 Smoke outputs: `results/pilot_smoke/condition_scores.parquet` and `figures/smoke_*.png` (local only; gitignored).
 
-Primary-model config: `configs/default.yaml` (used from Phase 4 onward).
+Primary-model config: `configs/default.yaml` (Phase 4+).
+
+## Phase 4 (GPU)
+
+No local GPU was available in development. Use Kaggle/Colab free tier (16 GB):
+
+1. Open `notebooks/run_kaggle.ipynb` on a GPU runtime.
+2. Point it at this repo (public clone, private token secret, or uploaded zip).
+3. Run stage `phase4` with `configs/default.yaml`.
+4. Download `libra_phase4_results.zip` and merge `results/`, `figures/`, and updated `configs/default.yaml` back here.
+5. Confirm `results/extract/extraction_summary.json` → `all_gates_passed` and `results/pilot/phase4_diagnostics.json` → `phase4_acceptance_passed`.
+
+```bash
+# On the GPU machine / notebook:
+python -m trait_mtmm.run phase4 --config configs/default.yaml
+# Or stepwise:
+python -m trait_mtmm.run extract --config configs/default.yaml
+python -m trait_mtmm.run pilot --config configs/default.yaml
+python -m trait_mtmm.run diagnose --config configs/default.yaml
+```
 
 ## Layout
 

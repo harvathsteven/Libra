@@ -50,15 +50,24 @@ def load_model(
 ) -> LoadedModel:
     """Load an instruct model with hidden-state access."""
     torch_dtype = resolve_dtype(dtype)
-    torch_device = torch.device(device)
+    if device == "cuda" and not torch.cuda.is_available():
+        raise RuntimeError(
+            "configs request device=cuda but torch.cuda.is_available() is False. "
+            "Use a GPU runtime (Kaggle/Colab) or configs/smoke.yaml on CPU."
+        )
+    torch_device = torch.device(device if device != "cuda" else "cuda:0")
     tokenizer = AutoTokenizer.from_pretrained(model_id, revision=revision)
-    model = AutoModelForCausalLM.from_pretrained(
-        model_id,
-        revision=revision,
-        dtype=torch_dtype,
-        low_cpu_mem_usage=True,
-    )
-    model.to(torch_device)
+    load_kwargs: dict[str, Any] = {
+        "revision": revision,
+        "dtype": torch_dtype,
+        "low_cpu_mem_usage": True,
+    }
+    if device == "cuda":
+        # Fits Phi-3.5-mini in ~16 GB more reliably than a blank .to("cuda").
+        load_kwargs["device_map"] = "auto"
+    model = AutoModelForCausalLM.from_pretrained(model_id, **load_kwargs)
+    if device != "cuda":
+        model.to(torch_device)
     model.eval()
     if tokenizer.pad_token_id is None and tokenizer.eos_token_id is not None:
         tokenizer.pad_token = tokenizer.eos_token

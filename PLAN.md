@@ -146,4 +146,5 @@ Full specifications for stimuli (Section 4), measurement (Section 5), phases and
 | 1 Core library | Done |
 | 2 Stimuli | Done |
 | 3 Measures and vectors | Done (smoke E2E) |
-| 4–8 | Not started |
+| 4 GPU extraction and dev pilot | Waiting on owner GPU run (Kaggle notebook ready) |
+| 5–8 | Not started |
