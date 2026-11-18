@@ -121,7 +121,8 @@ Owner confirmed: Phi-3.5-mini-instruct; TRAIT via HF token (stored only in local
 
 - **Separation passed** at `L_star=17` (32 layers): held-out d′ E≈7.11, A≈15.37; cos(E,A)≈0.23.
 - **Steering failed:** mean SR option mass ≈1e−9 under prefill `"Answer:"` (digits get essentially no next-token mass on Phi-3.5-mini). Spearman E≈−1, A≈0.1 — not interpretable with near-zero mass.
-- **Attempt 1 (prompt format):** set `assistant_prefill: ""` and tighten SR instruction to “exactly one digit…”. Re-run `extract` / `phase4` on GPU.
+- **Attempt 1 (prompt format):** set `assistant_prefill: ""` and tighten SR instruction to “exactly one digit…”. Re-run on GPU → still ~0 digit mass (`baseline_option_mass` ≈ 7e−12).
+- **Attempt 2 (prompt format):** switch SR to **letter options A–E** (same 5-point Likert values 1–5), keep empty prefill (`scoring.sr_format: letters`). Digits appear to be a bad first-token for Phi-3.5-mini under this chat template; letters match the BC response style. This is the second and final planned prompt-format attempt before stopping if validation still fails.
 
 ### Phase 3 — measures and smoke E2E (2026-11-16)
 

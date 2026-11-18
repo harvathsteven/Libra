@@ -86,7 +86,8 @@ def cmd_extract(cfg: dict[str, Any], *, enforce_gates: bool | None = None) -> di
         n_triples=n_triples,
         out_dir=out,
         sr_items=sr_items,
-        assistant_prefill=cfg["scoring"]["assistant_prefill"],
+        assistant_prefill=cfg["scoring"].get("assistant_prefill") or "",
+        sr_format=str(cfg["scoring"].get("sr_format", "letters")),
         enforce_gates=enforce_gates,
     )
     write_json(
@@ -151,11 +152,18 @@ def cmd_pilot(cfg: dict[str, Any]) -> Path:
     if is_smoke:
         probes = probes[: limits["max_probes"]]
 
-    prefill = cfg["scoring"]["assistant_prefill"]
+    prefill = cfg["scoring"].get("assistant_prefill") or ""
+    sr_format = str(cfg["scoring"].get("sr_format", "letters"))
     sr_parts, bc_parts, ip_parts = [], [], []
     for persona in personas:
         sr_parts.append(
-            run_sr_for_persona(loaded, persona, sr_items, assistant_prefill=prefill)
+            run_sr_for_persona(
+                loaded,
+                persona,
+                sr_items,
+                assistant_prefill=prefill,
+                sr_format=sr_format,
+            )
         )
         bc_parts.append(
             run_bc_for_persona(

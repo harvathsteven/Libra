@@ -21,6 +21,7 @@ smoke:
 
 scoring:
   assistant_prefill: "Answer:"
+  sr_format: digits
   min_option_mass_dev: 0.80
   drop_item_option_mass: 0.50
   drop_condition_item_frac: 0.20

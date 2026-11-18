@@ -13,9 +13,11 @@ paths:
   results_dir: results
   figures_dir: figures
 scoring:
-  # Prompt format finalized on dev personas only (Phase 4). Log changes in DECISIONS.md.
-  # Attempt 1 (2026-11-17): empty prefill — "Answer:" yielded ~0 digit mass on Phi-3.5-mini.
+  # Prompt format finalized on extract/dev only (Phase 4). Log changes in DECISIONS.md.
+  # Attempt 1: digits + "Answer:" / empty prefill → ~0 option mass on Phi-3.5-mini.
+  # Attempt 2: letters A–E (same 1–5 Likert values), empty prefill.
   assistant_prefill: ""
+  sr_format: letters
   min_option_mass_dev: 0.80
   drop_item_option_mass: 0.50
   drop_condition_item_frac: 0.20

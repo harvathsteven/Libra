@@ -106,7 +106,8 @@ def extract_and_validate(
     n_triples: int = 6,
     out_dir: Path,
     sr_items: list[dict[str, Any]] | None = None,
-    assistant_prefill: str = "Answer:",
+    assistant_prefill: str = "",
+    sr_format: str = "letters",
     enforce_gates: bool = True,
     min_dprime: float = 2.0,
     min_steer_spearman: float = 0.9,
@@ -249,30 +250,35 @@ def extract_and_validate(
         coefficients = [-2.0, -1.0, 0.0, 1.0, 2.0]
         # Scale coefficients so option mass stays high; start from these and shrink if needed
         scale = 1.0
-        option_ids = discover_option_token_ids(
-            loaded.tokenizer, ["1", "2", "3", "4", "5"]
-        )
-        baseline = {
-            "persona_id": "baseline_steer",
-            "set": "baseline",
-            "system_prompt": None,
-        }
+        from trait_mtmm.measures.sr import SR_FORMATS, build_sr_user_prompt
 
-        from trait_mtmm.measures.sr import build_sr_user_prompt
+        fmt = SR_FORMATS[sr_format]
+        option_ids = discover_option_token_ids(
+            loaded.tokenizer, list(fmt["options"])
+        )
+        steer_report["sr_format"] = sr_format
+        steer_report["assistant_prefill"] = assistant_prefill
 
         def _sr_mass_unsteered() -> float:
             """Baseline option mass with no steering (prompt-format check)."""
             masses = []
             for item in sr_items[: min(4, len(sr_items))]:
-                user = build_sr_user_prompt(item["text"], scale_reversed=False)
+                user = build_sr_user_prompt(
+                    item["text"], scale_reversed=False, sr_format=sr_format
+                )
                 prompt = format_chat(
                     loaded.tokenizer,
                     system=None,
                     user=user,
-                    assistant_prefill=assistant_prefill,
+                    assistant_prefill=assistant_prefill or None,
                 )
                 logits, _ = forward_with_hidden_states(loaded, prompt)
-                result = score_likert(next_token_logits(logits), option_ids)
+                result = score_likert(
+                    next_token_logits(logits),
+                    option_ids,
+                    options=fmt["options"],
+                    values=fmt["values"],
+                )
                 masses.append(result.option_mass)
             return float(np.mean(masses)) if masses else 0.0
 
@@ -281,8 +287,9 @@ def extract_and_validate(
         if baseline_mass < min_option_mass:
             steer_report["failure_reason"] = (
                 f"SR prompt format yields option mass {baseline_mass:.4f} "
-                f"< {min_option_mass} even without steering. "
-                "Change scoring.assistant_prefill / SR wording (dev only) and re-run extract."
+                f"< {min_option_mass} even without steering "
+                f"(sr_format={sr_format!r}, prefill={assistant_prefill!r}). "
+                "Change scoring.sr_format / assistant_prefill (dev only) and re-run extract."
             )
             steer_ok = False
         else:
@@ -296,14 +303,17 @@ def extract_and_validate(
                     for item in sr_items:
                         if item["trait"] != trait:
                             continue
-                        user = build_sr_user_prompt(item["text"], scale_reversed=False)
+                        user = build_sr_user_prompt(
+                            item["text"],
+                            scale_reversed=False,
+                            sr_format=sr_format,
+                        )
                         prompt = format_chat(
                             loaded.tokenizer,
                             system=None,
                             user=user,
-                            assistant_prefill=assistant_prefill,
+                            assistant_prefill=assistant_prefill or None,
                         )
-                        # Skip hook when coefficient is 0 (identical and cheaper).
                         c = float(coef * scale_)
                         if abs(c) < 1e-12:
                             logits, _ = forward_with_hidden_states(loaded, prompt)
@@ -315,7 +325,12 @@ def extract_and_validate(
                                 steer_vector=vec,
                                 steer_coefficient=c,
                             )
-                        result = score_likert(next_token_logits(logits), option_ids)
+                        result = score_likert(
+                            next_token_logits(logits),
+                            option_ids,
+                            options=fmt["options"],
+                            values=fmt["values"],
+                        )
                         assert result.expected_value is not None
                         keyed = apply_reverse_keying(
                             result.expected_value, reverse=(item["keying"] == "-")
