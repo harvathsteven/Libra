@@ -137,6 +137,8 @@ Owner confirmed: Phi-3.5-mini-instruct; TRAIT via HF token (stored only in local
 
 - **Hypotheses:** (a) E fails only on float: with 5 coefficients ρ ∈ {1.0, 0.9, 0.8, …}; 0.9 = one adjacent swap, returned as `0.8999999999999998` < 0.9. (b) A inversion is acquiescence × keying imbalance: IPIP A items are 7 `+` / 17 `−` (E is 18 `+` / 6 `−`), so a uniform shift toward "Accurate" raises keyed E and lowers keyed A. (c) The gate scores standard label order only, unlike `score_sr_item` (both orders). (d) ±2 on a unit vector may be tiny relative to ‖h‖ at L*.
 - **Tool:** `scripts/steering_diag.py` — both orders, split by keying, raw and ‖h‖-scaled coefficients. No gate code changed; fixes wait on its output.
+- **Attempt 2 `steering_curves.parquet` (downloaded):** across coef −2 → +2, keyed SR moved E 3.915 → 3.923 (Δ≈0.008) and A 4.330 → 4.300 (Δ≈−0.030) on the 1–5 scale; mass ≈0.9996–0.9999 throughout. Vectors are unit-norm, so ±2 is a negligible push at L*=17. The gate's Spearman ranked differences at fp16-noise scale (E's one swap: 3.9213 vs 3.9210). **Reading:** the steering gate did not test steering; the A ρ=−1 shows a slightly negative slope under near-zero perturbation, not that the vector is inverted. Hypothesis (d) is primary; (a)–(c) still apply once coefficients are meaningful.
+- **Notebook:** `STAGE = "steering_diag"` runs the diagnostic; cell 2 now fetches/resets an existing clone instead of silently reusing stale code; cell 5 prints a download link and the diag table.
 
 ### Phase 3 — measures and smoke E2E (2026-11-16)
 
