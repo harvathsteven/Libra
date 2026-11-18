@@ -20,7 +20,11 @@ from trait_mtmm.model import (
     last_token_residual,
     n_transformer_layers,
 )
-from trait_mtmm.scoring import discover_option_token_ids, score_likert
+from trait_mtmm.scoring import (
+    apply_reverse_keying,
+    discover_option_token_ids,
+    score_likert,
+)
 from trait_mtmm.model import next_token_logits
 
 
