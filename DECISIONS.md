@@ -168,6 +168,14 @@ Owner chose "A + B1". This rule is fixed **before** any run of it and will be re
 - **Report:** A steers behavior (BC) but its SR effect is acquiescence-dominated at an at-ceiling baseline; carry this forward as an SR method-variance note. A's BC effect is ~⅓ of E's.
 - **Pilot crash (bug, not a gate):** `ip.project` dotted a CPU-loaded vector with a CUDA residual. Fixed by moving the vector to the residual's device; CPU smoke could not catch it.
 
+#### 2026-11-17 — Phase 4 dev pilot + diagnose (Kaggle, `7b0ac20`): ACCEPTANCE PASSED
+
+- **Option mass:** SR 0.9999, BC 0.9986 (threshold 0.80). **Floor/ceiling:** 0 pinned conditions on any SR/BC column. **Variance (SD across 8 dev personas):** E_SR 0.373, A_SR 0.187, E_BC 0.022, A_BC 0.051, E_IP 0.020, A_IP 0.106 — all pass. `phase4_acceptance_passed: true`.
+- **Dev MTMM (Pearson, n = 8 — pipeline check only, no inference):** monotrait–heteromethod E: SR–BC 0.83, SR–IP 0.14, BC–IP 0.22; A: SR–BC 0.31, SR–IP 0.32, BC–IP 0.99. Largest heterotrait: E_IP–A_SR −0.81.
+- **Dev design caveat:** intended E and A levels are correlated r = −0.57 across the 8 dev personas (test sets are fully crossed: explicit and implicit r = 0.00). Heterotrait values above are confounded by design and must not inform the preregistration.
+- **Carry into Phase 5 (preregistration):** (1) A_SR is acquiescence-prone (gate diagnostic); prereg how SR is scored and whether an acquiescence index is reported. (2) BC was the steering-validation criterion for the vectors, so IP–BC convergence (esp. A 0.99) is not fully independent evidence; prereg how it is interpreted. (3) E_IP has low between-persona SD (0.020); note as a risk for E IP validity.
+- **Next:** Phase 5 preregistration → HUMAN GATE G1 before any test persona run.
+
 ### Phase 3 — measures and smoke E2E (2026-11-16)
 
 - Implemented SR/BC/IP measures, vector extraction (mean-difference, L* by held-out d', steering curves), CLI (`extract`, `pilot`, `smoke`, `figures`, `analyze`).
