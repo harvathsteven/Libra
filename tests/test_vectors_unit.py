@@ -60,3 +60,11 @@ def test_keying_balanced_mean_weights_keying_groups_equally() -> None:
     # 1 '+' item at 5.0, 3 '-' items at 1.0 -> balanced = 3.0 (plain mean would be 2.0)
     assert keying_balanced_mean([5.0, 1.0, 1.0, 1.0], ["+", "-", "-", "-"]) == 3.0
     assert keying_balanced_mean([4.0, 2.0], ["+", "+"]) == 3.0
+
+
+def test_ip_project_accepts_vector_on_other_device_or_dtype() -> None:
+    from trait_mtmm.measures.ip import project
+
+    residual = torch.tensor([3.0, 4.0], dtype=torch.float16)
+    vector = torch.tensor([1.0, 0.0], dtype=torch.float32)
+    assert abs(project(residual, vector) - 0.6) < 1e-3

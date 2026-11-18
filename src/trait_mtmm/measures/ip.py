@@ -18,7 +18,8 @@ from trait_mtmm.model import (
 
 def project(residual: torch.Tensor, vector: torch.Tensor) -> float:
     r = F.normalize(residual.float().flatten(), dim=0)
-    v = F.normalize(vector.float().flatten(), dim=0)
+    # Saved vectors load on CPU; residuals live on the model device (cuda on GPU runs).
+    v = F.normalize(vector.to(device=r.device).float().flatten(), dim=0)
     return float(torch.dot(r, v).item())
 
 

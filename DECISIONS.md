@@ -159,6 +159,15 @@ Owner chose "A + B1". This rule is fixed **before** any run of it and will be re
 - **If v2 fails:** stop; Phase 4 fails and goes to redesign. No further gate revisions on this dev data.
 - **Code:** `validate_steering` in `src/trait_mtmm/vectors.py`; smoke E2E passes (numbers meaningless).
 
+#### 2026-11-17 — Gate v2 result (Kaggle, `aa5a2a6`): PASSED
+
+- **Separation:** L* = 17; d′ E 7.11, A 15.37; cos(E,A) 0.23. ‖h‖ at L* (BC prompts) = 104.6.
+- **E:** BC ρ = 1.0, Δ(−0.2→+0.2 ‖h‖) = +0.216, mass 0.989 → pass. Secondary SR balanced ρ = 1.0 (Δ +0.267); raw-agree ρ = 1.0.
+- **A:** BC ρ = 1.0, Δ = +0.074, mass 0.991 → pass. Secondary SR balanced ρ = −0.7 (Δ −0.264); raw-agree ρ = 1.0 (acquiescence, as in the diagnostic).
+- **all_gates_passed: true**; `layer.L_star: 17` frozen in `configs/default.yaml`.
+- **Report:** A steers behavior (BC) but its SR effect is acquiescence-dominated at an at-ceiling baseline; carry this forward as an SR method-variance note. A's BC effect is ~⅓ of E's.
+- **Pilot crash (bug, not a gate):** `ip.project` dotted a CPU-loaded vector with a CUDA residual. Fixed by moving the vector to the residual's device; CPU smoke could not catch it.
+
 ### Phase 3 — measures and smoke E2E (2026-11-16)
 
 - Implemented SR/BC/IP measures, vector extraction (mean-difference, L* by held-out d', steering curves), CLI (`extract`, `pilot`, `smoke`, `figures`, `analyze`).
