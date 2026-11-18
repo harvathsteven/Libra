@@ -102,7 +102,11 @@ def score_sr_item(
     sr_format: str = "letters",
     options: Sequence[str] | None = None,
     values: Sequence[float] | None = None,
+    steer_layer: int | None = None,
+    steer_vector: Any = None,
+    steer_coefficient: float = 0.0,
 ) -> dict[str, Any]:
+    """Score one item in both label orders; optional residual steering (validation only)."""
     fmt = SR_FORMATS[sr_format]
     options = tuple(options) if options is not None else fmt["options"]
     values = tuple(values) if values is not None else fmt["values"]
@@ -118,7 +122,13 @@ def score_sr_item(
             user=user,
             assistant_prefill=assistant_prefill or None,
         )
-        logits, _ = forward_with_hidden_states(loaded, prompt)
+        logits, _ = forward_with_hidden_states(
+            loaded,
+            prompt,
+            steer_layer=steer_layer,
+            steer_vector=steer_vector,
+            steer_coefficient=steer_coefficient,
+        )
         result = score_likert(
             next_token_logits(logits),
             option_token_ids,
@@ -141,6 +151,8 @@ def score_sr_item(
         "keying": item["keying"],
         "score": keyed,
         "score_before_keying": avg,
+        "raw_standard": scores[0],
+        "raw_reversed": scores[1],
         "option_mass": average_paired_scores(masses[0], masses[1]),
         "option_mass_standard": masses[0],
         "option_mass_reversed": masses[1],

@@ -77,6 +77,9 @@ def cmd_extract(cfg: dict[str, Any], *, enforce_gates: bool | None = None) -> di
     sr_items = load_ipip(
         stim, max_items=limits.get("max_sr_items") if is_smoke else None
     )
+    bc_items = load_bc(
+        stim, max_items=limits.get("max_bc_items") if is_smoke else None
+    )
 
     summary = extract_and_validate(
         loaded,
@@ -86,6 +89,7 @@ def cmd_extract(cfg: dict[str, Any], *, enforce_gates: bool | None = None) -> di
         n_triples=n_triples,
         out_dir=out,
         sr_items=sr_items,
+        bc_items=bc_items,
         assistant_prefill=cfg["scoring"].get("assistant_prefill") or "",
         sr_format=str(cfg["scoring"].get("sr_format", "letters")),
         enforce_gates=enforce_gates,

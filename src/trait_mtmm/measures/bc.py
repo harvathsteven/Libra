@@ -48,6 +48,11 @@ def order_options(
     return [(OPTIONS[i], texts[j][0], texts[j][1]) for i, j in enumerate(order)]
 
 
+def bc_order_seed(base_seed: int, item: dict[str, Any], index: int) -> int:
+    """Stable per-item option-order seed (index = position in the full BC item list)."""
+    return base_seed + sum(ord(c) for c in item["item_id"]) + index
+
+
 def build_bc_user_prompt(item: dict[str, Any], ordered: list[tuple[str, str, str]]) -> str:
     lines = [item["question"].strip(), "", "Options:"]
     for letter, _role, text in ordered:
@@ -65,7 +70,11 @@ def score_bc_item(
     assistant_prefill: str,
     option_token_ids: dict[str, list[int]],
     order_seed: int,
+    steer_layer: int | None = None,
+    steer_vector: Any = None,
+    steer_coefficient: float = 0.0,
 ) -> dict[str, Any]:
+    """Score one item in forward and reversed option order; optional steering."""
     scores: list[float] = []
     masses: list[float] = []
     for reverse in (False, True):
@@ -78,7 +87,13 @@ def score_bc_item(
             user=user,
             assistant_prefill=assistant_prefill,
         )
-        logits, _ = forward_with_hidden_states(loaded, prompt)
+        logits, _ = forward_with_hidden_states(
+            loaded,
+            prompt,
+            steer_layer=steer_layer,
+            steer_vector=steer_vector,
+            steer_coefficient=steer_coefficient,
+        )
         result = score_forced_choice(
             next_token_logits(logits),
             option_token_ids,
@@ -111,8 +126,7 @@ def run_bc_for_persona(
     system = persona.get("system_prompt")
     rows = []
     for i, item in enumerate(items):
-        # Stable per-item order seed derived from base seed and item id
-        order_seed = base_seed + sum(ord(c) for c in item["item_id"]) + i
+        order_seed = bc_order_seed(base_seed, item, i)
         row = score_bc_item(
             loaded,
             item,

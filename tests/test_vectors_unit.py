@@ -38,3 +38,25 @@ def test_adjective_triples_deterministic() -> None:
     assert a == b
     assert len(a) == 3
     assert len(a[0]) == 3
+
+
+def test_spearman_passes_tolerates_float_rounding() -> None:
+    from trait_mtmm.vectors import spearman_passes
+
+    # 5-point curve with one adjacent swap: scipy returns 0.8999999999999998
+    from scipy import stats
+
+    rho = stats.spearmanr([-2, -1, 0, 1, 2], [1.0, 2.0, 4.0, 3.0, 5.0]).correlation
+    assert rho < 0.9
+    assert spearman_passes(rho, 0.9)
+    assert not spearman_passes(0.8, 0.9)
+    assert not spearman_passes(float("nan"), 0.9)
+    assert not spearman_passes(None, 0.9)
+
+
+def test_keying_balanced_mean_weights_keying_groups_equally() -> None:
+    from trait_mtmm.vectors import keying_balanced_mean
+
+    # 1 '+' item at 5.0, 3 '-' items at 1.0 -> balanced = 3.0 (plain mean would be 2.0)
+    assert keying_balanced_mean([5.0, 1.0, 1.0, 1.0], ["+", "-", "-", "-"]) == 3.0
+    assert keying_balanced_mean([4.0, 2.0], ["+", "+"]) == 3.0

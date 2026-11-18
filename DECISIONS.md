@@ -140,6 +140,25 @@ Owner confirmed: Phi-3.5-mini-instruct; TRAIT via HF token (stored only in local
 - **Attempt 2 `steering_curves.parquet` (downloaded):** across coef −2 → +2, keyed SR moved E 3.915 → 3.923 (Δ≈0.008) and A 4.330 → 4.300 (Δ≈−0.030) on the 1–5 scale; mass ≈0.9996–0.9999 throughout. Vectors are unit-norm, so ±2 is a negligible push at L*=17. The gate's Spearman ranked differences at fp16-noise scale (E's one swap: 3.9213 vs 3.9210). **Reading:** the steering gate did not test steering; the A ρ=−1 shows a slightly negative slope under near-zero perturbation, not that the vector is inverted. Hypothesis (d) is primary; (a)–(c) still apply once coefficients are meaningful.
 - **Notebook:** `STAGE = "steering_diag"` runs the diagnostic; cell 2 now fetches/resets an existing clone instead of silently reusing stale code; cell 5 prints a download link and the diag table.
 
+#### 2026-11-17 — Steering diagnostic result (Kaggle, Phi-3.5, L*=17)
+
+- Mean last-token ‖h‖ at L* = 101.5, so raw coef 2 = 1.97% of ‖h‖. At ±0.1/±0.2 ‖h‖ option mass stays ≥ 0.997.
+- **E:** keying-balanced, both orders: 3.268 → 3.378 → 3.482 → 3.515 → 3.524 (ρ = 1.0). The old gate metric (standard order only) on the same coefficients: 3.530 → 3.813 → 3.921 → 3.916 → 3.900 (ρ = 0.6). Single-order scoring masks the effect.
+- **A:** raw agreement (unkeyed) 2.284 → 2.428 → 2.501 → 2.558 → 2.788 (ρ = 1.0): the A direction mainly drives acquiescence. Forward-keyed A items are near ceiling at baseline (4.48/5), so acquiescence lands on reverse-keyed items (keyed 4.53 → 3.88) and keying-balanced A still falls (4.396 → 4.448 → 4.396 → 4.325 → 4.145, ρ ≈ −0.8). −A steering lowers forward-keyed items as expected (4.48 → 4.26).
+- **Reading:** A vector is not inverted; on an at-ceiling baseline assistant its SR effect is acquiescence (an SR method artifact).
+
+#### 2026-11-17 — OWNER DECISION: steering gate v2 (fixed before the next GPU run)
+
+Owner chose "A + B1". This rule is fixed **before** any run of it and will be reported whatever the outcome. Changed after seeing dev results (forking-paths risk acknowledged); still pre-preregistration, so logged here, not in DEVIATIONS.md.
+
+- **Population:** baseline assistant (no persona system prompt), L* chosen by held-out d′ as before.
+- **Coefficients:** {−0.2, −0.1, 0, +0.1, +0.2} × mean last-token ‖h‖ at L*, where ‖h‖ is measured on unsteered BC prompts (first 4 items per trait, forward order). Existing shrink-by-half rule if option mass < 0.80.
+- **Gating criterion (per trait):** Spearman(coefficient, mean BC high-trait probability over all 100 BC items of that trait, forward + reversed option order averaged, pilot order seeds) ≥ **0.9** (unchanged threshold, compared with 1e−9 float tolerance), and mean BC option mass ≥ 0.80. Both E and A must pass. BC is forced choice between high/low responses, so acquiescence cannot drive it.
+- **Secondary (non-gating):** SR at the same coefficients, both label orders, keying-balanced; plus raw-agreement Spearman (acquiescence). Reported in `extraction_summary.json` and `steering_curves.parquet` (`measure` = `bc` / `sr_balanced`).
+- **Not changed:** threshold 0.9, vector sign, SR/BC prompt formats, L* rule, separation gate (d′ ≥ 2).
+- **If v2 fails:** stop; Phase 4 fails and goes to redesign. No further gate revisions on this dev data.
+- **Code:** `validate_steering` in `src/trait_mtmm/vectors.py`; smoke E2E passes (numbers meaningless).
+
 ### Phase 3 — measures and smoke E2E (2026-11-16)
 
 - Implemented SR/BC/IP measures, vector extraction (mean-difference, L* by held-out d', steering curves), CLI (`extract`, `pilot`, `smoke`, `figures`, `analyze`).

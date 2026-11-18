@@ -146,5 +146,5 @@ Full specifications for stimuli (Section 4), measurement (Section 5), phases and
 | 1 Core library | Done |
 | 2 Stimuli | Done |
 | 3 Measures and vectors | Done (smoke E2E) |
-| 4 GPU extraction and dev pilot | Stopped: separation OK; letters fixed mass; steering Spearman failed (A≈−1). Two prompt attempts done — owner decision needed |
+| 4 GPU extraction and dev pilot | Owner chose steering gate v2 (2026-11-17): ‖h‖-scaled coefficients, BC criterion, SR secondary. Awaiting one GPU run of `phase4` |
 | 5–8 | Not started |

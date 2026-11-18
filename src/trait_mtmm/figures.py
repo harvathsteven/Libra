@@ -53,10 +53,14 @@ def fig_steering_curves(steer_df: pd.DataFrame, path: Path) -> None:
         ax.text(0.5, 0.5, "no steering data", ha="center")
         ax.axis("off")
     else:
-        for trait, g in steer_df.groupby("trait"):
-            ax.plot(g["coefficient"], g["sr_score"], marker="o", label=trait)
-        ax.set_xlabel("steering coefficient")
-        ax.set_ylabel("SR score")
+        # Gate v2 layout: one row per (trait, measure, coefficient); BC gates, SR is secondary.
+        df = steer_df[steer_df["measure"] == "bc"] if "measure" in steer_df else steer_df
+        y = "score" if "score" in df else "sr_score"
+        x = "norm_frac" if "norm_frac" in df else "coefficient"
+        for trait, g in df.groupby("trait"):
+            ax.plot(g[x], g[y], marker="o", label=trait)
+        ax.set_xlabel("steering coefficient (fraction of ||h|| at L*)" if x == "norm_frac" else "steering coefficient")
+        ax.set_ylabel("BC P(high-trait option)" if "measure" in steer_df else "SR score")
         ax.legend()
         ax.set_title("Steering curves (smoke)")
     _save(fig, path)
