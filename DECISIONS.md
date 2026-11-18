@@ -124,6 +124,15 @@ Owner confirmed: Phi-3.5-mini-instruct; TRAIT via HF token (stored only in local
 - **Attempt 1 (prompt format):** set `assistant_prefill: ""` and tighten SR instruction to “exactly one digit…”. Re-run on GPU → still ~0 digit mass (`baseline_option_mass` ≈ 7e−12).
 - **Attempt 2 (prompt format):** switch SR to **letter options A–E** (same 5-point Likert values 1–5), keep empty prefill (`scoring.sr_format: letters`). Digits appear to be a bad first-token for Phi-3.5-mini under this chat template; letters match the BC response style. This is the second and final planned prompt-format attempt before stopping if validation still fails.
 
+#### 2026-11-17 — Attempt 2 result (STOP)
+
+- **Option mass:** fixed. `baseline_option_mass` ≈ 0.999; steered mean mass ≈ 0.999–1.0 at scale 1.0. Letters are usable as next-token options on Phi-3.5-mini.
+- **Separation:** still passes (`L_star=17`; d′ E≈7.11, A≈15.37; cos≈0.23).
+- **Steering Spearman:** **failed.** E ≈ 0.900 (reported `0.8999999999999998`, so `>= 0.9` fails on float); A ≈ **−1.0** (perfectly anti-monotonic — high +A steering lowers keyed SR). Scale stayed 1.0 (mass never forced shrink).
+- **Bugfix mid-run:** `NameError: apply_reverse_keying` in `vectors.py` (import dropped); fixed in `63601d2`, then re-ran to this summary.
+- **Decision:** **Stop.** Two prompt-format attempts exhausted. Do **not** flip the A vector, relax the Spearman threshold, or invent a third prompt. Phase 4 extract gate did not pass; pilot was not run.
+- **Owner choices from here:** (1) accept Phase 4 failure and redesign extraction/steering (new phase / prereg change); (2) inspect `results/extract/steering_curves.parquet` on Kaggle for the A inversion pattern; (3) only if owner explicitly authorizes a scoped code bug-hunt (not a third format tweak).
+
 ### Phase 3 — measures and smoke E2E (2026-11-16)
 
 - Implemented SR/BC/IP measures, vector extraction (mean-difference, L* by held-out d', steering curves), CLI (`extract`, `pilot`, `smoke`, `figures`, `analyze`).
