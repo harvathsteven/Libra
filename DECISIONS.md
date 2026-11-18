@@ -133,6 +133,11 @@ Owner confirmed: Phi-3.5-mini-instruct; TRAIT via HF token (stored only in local
 - **Decision:** **Stop.** Two prompt-format attempts exhausted. Do **not** flip the A vector, relax the Spearman threshold, or invent a third prompt. Phase 4 extract gate did not pass; pilot was not run.
 - **Owner choices from here:** (1) accept Phase 4 failure and redesign extraction/steering (new phase / prereg change); (2) inspect `results/extract/steering_curves.parquet` on Kaggle for the A inversion pattern; (3) only if owner explicitly authorizes a scoped code bug-hunt (not a third format tweak).
 
+#### 2026-11-17 — Steering diagnostic (owner-authorized; not a gate or prompt attempt)
+
+- **Hypotheses:** (a) E fails only on float: with 5 coefficients ρ ∈ {1.0, 0.9, 0.8, …}; 0.9 = one adjacent swap, returned as `0.8999999999999998` < 0.9. (b) A inversion is acquiescence × keying imbalance: IPIP A items are 7 `+` / 17 `−` (E is 18 `+` / 6 `−`), so a uniform shift toward "Accurate" raises keyed E and lowers keyed A. (c) The gate scores standard label order only, unlike `score_sr_item` (both orders). (d) ±2 on a unit vector may be tiny relative to ‖h‖ at L*.
+- **Tool:** `scripts/steering_diag.py` — both orders, split by keying, raw and ‖h‖-scaled coefficients. No gate code changed; fixes wait on its output.
+
 ### Phase 3 — measures and smoke E2E (2026-11-16)
 
 - Implemented SR/BC/IP measures, vector extraction (mean-difference, L* by held-out d', steering curves), CLI (`extract`, `pilot`, `smoke`, `figures`, `analyze`).
