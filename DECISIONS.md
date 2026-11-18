@@ -115,8 +115,13 @@ Owner confirmed: Phi-3.5-mini-instruct; TRAIT via HF token (stored only in local
 - **Hand-off:** `notebooks/run_kaggle.ipynb` clones/installs and runs `phase4` (`extract` → `pilot` → `diagnose`) on a free 16 GB GPU.
 - **CLI:** `python -m trait_mtmm.run phase4 --config configs/default.yaml` (also `extract`, `pilot`, `diagnose` separately).
 - On successful extract, `layer.L_star` is written into `configs/default.yaml`.
-- **Owner action:** run the notebook (or equivalent Colab), download `libra_phase4_results.zip`, merge into the repo, confirm both `all_gates_passed` and `phase4_acceptance_passed`, then continue to Phase 5.
-- Prompt-format retries (max 2): edit `scoring.assistant_prefill` only, re-run `pilot` + `diagnose`, log each attempt here.
+- Prompt-format retries (max 2): edit `scoring.assistant_prefill` / SR wording on extract+dev only, re-run, log each attempt here.
+
+#### 2026-11-17 — first Kaggle extract result
+
+- **Separation passed** at `L_star=17` (32 layers): held-out d′ E≈7.11, A≈15.37; cos(E,A)≈0.23.
+- **Steering failed:** mean SR option mass ≈1e−9 under prefill `"Answer:"` (digits get essentially no next-token mass on Phi-3.5-mini). Spearman E≈−1, A≈0.1 — not interpretable with near-zero mass.
+- **Attempt 1 (prompt format):** set `assistant_prefill: ""` and tighten SR instruction to “exactly one digit…”. Re-run `extract` / `phase4` on GPU.
 
 ### Phase 3 — measures and smoke E2E (2026-11-16)
 

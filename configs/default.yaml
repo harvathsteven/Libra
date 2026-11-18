@@ -14,7 +14,8 @@ paths:
   figures_dir: figures
 scoring:
   # Prompt format finalized on dev personas only (Phase 4). Log changes in DECISIONS.md.
-  assistant_prefill: "Answer:"
+  # Attempt 1 (2026-11-17): empty prefill — "Answer:" yielded ~0 digit mass on Phi-3.5-mini.
+  assistant_prefill: ""
   min_option_mass_dev: 0.80
   drop_item_option_mass: 0.50
   drop_condition_item_frac: 0.20

@@ -258,79 +258,114 @@ def extract_and_validate(
             "system_prompt": None,
         }
 
-        def run_curve(trait: str, scale_: float) -> pd.DataFrame:
-            rows = []
-            vec = vectors[trait]
-            for coef in coefficients:
-                # Score SR items with steering
-                item_scores = []
-                masses = []
-                for item in sr_items:
-                    if item["trait"] != trait:
-                        continue
-                    from trait_mtmm.measures.sr import build_sr_user_prompt
-                    from trait_mtmm.scoring import (
-                        apply_reverse_keying,
-                        map_reversed_scale_score,
-                    )
+        from trait_mtmm.measures.sr import build_sr_user_prompt
 
-                    user = build_sr_user_prompt(item["text"], scale_reversed=False)
-                    prompt = format_chat(
-                        loaded.tokenizer,
-                        system=None,
-                        user=user,
-                        assistant_prefill=assistant_prefill,
-                    )
-                    logits, _ = forward_with_hidden_states(
-                        loaded,
-                        prompt,
-                        steer_layer=L_star,
-                        steer_vector=vec,
-                        steer_coefficient=coef * scale_,
-                    )
-                    result = score_likert(next_token_logits(logits), option_ids)
-                    assert result.expected_value is not None
-                    keyed = apply_reverse_keying(
-                        result.expected_value, reverse=(item["keying"] == "-")
-                    )
-                    item_scores.append(keyed)
-                    masses.append(result.option_mass)
-                rows.append(
-                    {
-                        "trait": trait,
-                        "coefficient": coef * scale_,
-                        "raw_coefficient": coef,
-                        "scale": scale_,
-                        "sr_score": float(np.mean(item_scores)) if item_scores else float("nan"),
-                        "mean_option_mass": float(np.mean(masses)) if masses else float("nan"),
-                    }
+        def _sr_mass_unsteered() -> float:
+            """Baseline option mass with no steering (prompt-format check)."""
+            masses = []
+            for item in sr_items[: min(4, len(sr_items))]:
+                user = build_sr_user_prompt(item["text"], scale_reversed=False)
+                prompt = format_chat(
+                    loaded.tokenizer,
+                    system=None,
+                    user=user,
+                    assistant_prefill=assistant_prefill,
                 )
-            return pd.DataFrame(rows)
+                logits, _ = forward_with_hidden_states(loaded, prompt)
+                result = score_likert(next_token_logits(logits), option_ids)
+                masses.append(result.option_mass)
+            return float(np.mean(masses)) if masses else 0.0
 
-        steer_frames = []
-        for trait in ("E", "A"):
-            # Shrink scale until mean option mass across curve >= min_option_mass (or scale tiny)
-            scale = 1.0
-            for _ in range(6):
-                curve = run_curve(trait, scale)
-                if curve["mean_option_mass"].mean() >= min_option_mass or scale < 0.05:
-                    break
-                scale *= 0.5
-            steer_frames.append(curve)
-            # Target-trait SR must increase monotonically with coefficient
-            spearman = stats.spearmanr(curve["coefficient"], curve["sr_score"]).correlation
-            if spearman is None or np.isnan(spearman):
-                spearman = 0.0
-            trait_ok = float(spearman) >= min_steer_spearman
-            steer_ok = steer_ok and trait_ok
-            steer_report[trait] = {
-                "spearman": float(spearman),
-                "scale": scale,
-                "mean_option_mass": float(curve["mean_option_mass"].mean()),
-                "passed": trait_ok,
-            }
-        steer_df = pd.concat(steer_frames, ignore_index=True)
-        steer_df.to_parquet(out_dir / "steering_curves.parquet", index=False)
+        baseline_mass = _sr_mass_unsteered()
+        steer_report["baseline_option_mass"] = baseline_mass
+        if baseline_mass < min_option_mass:
+            steer_report["failure_reason"] = (
+                f"SR prompt format yields option mass {baseline_mass:.4f} "
+                f"< {min_option_mass} even without steering. "
+                "Change scoring.assistant_prefill / SR wording (dev only) and re-run extract."
+            )
+            steer_ok = False
+        else:
+
+            def run_curve(trait: str, scale_: float) -> pd.DataFrame:
+                rows = []
+                vec = vectors[trait]
+                for coef in coefficients:
+                    item_scores = []
+                    masses = []
+                    for item in sr_items:
+                        if item["trait"] != trait:
+                            continue
+                        user = build_sr_user_prompt(item["text"], scale_reversed=False)
+                        prompt = format_chat(
+                            loaded.tokenizer,
+                            system=None,
+                            user=user,
+                            assistant_prefill=assistant_prefill,
+                        )
+                        # Skip hook when coefficient is 0 (identical and cheaper).
+                        c = float(coef * scale_)
+                        if abs(c) < 1e-12:
+                            logits, _ = forward_with_hidden_states(loaded, prompt)
+                        else:
+                            logits, _ = forward_with_hidden_states(
+                                loaded,
+                                prompt,
+                                steer_layer=L_star,
+                                steer_vector=vec,
+                                steer_coefficient=c,
+                            )
+                        result = score_likert(next_token_logits(logits), option_ids)
+                        assert result.expected_value is not None
+                        keyed = apply_reverse_keying(
+                            result.expected_value, reverse=(item["keying"] == "-")
+                        )
+                        item_scores.append(keyed)
+                        masses.append(result.option_mass)
+                    rows.append(
+                        {
+                            "trait": trait,
+                            "coefficient": coef * scale_,
+                            "raw_coefficient": coef,
+                            "scale": scale_,
+                            "sr_score": float(np.mean(item_scores))
+                            if item_scores
+                            else float("nan"),
+                            "mean_option_mass": float(np.mean(masses))
+                            if masses
+                            else float("nan"),
+                        }
+                    )
+                return pd.DataFrame(rows)
+
+            steer_frames = []
+            for trait in ("E", "A"):
+                # Shrink scale until mean option mass across curve >= threshold
+                scale = 1.0
+                for _ in range(8):
+                    curve = run_curve(trait, scale)
+                    if (
+                        curve["mean_option_mass"].mean() >= min_option_mass
+                        or scale < 0.01
+                    ):
+                        break
+                    scale *= 0.5
+                steer_frames.append(curve)
+                spearman = stats.spearmanr(
+                    curve["coefficient"], curve["sr_score"]
+                ).correlation
+                if spearman is None or np.isnan(spearman):
+                    spearman = 0.0
+                trait_ok = float(spearman) >= min_steer_spearman
+                steer_ok = steer_ok and trait_ok
+                steer_report[trait] = {
+                    "spearman": float(spearman),
+                    "scale": scale,
+                    "mean_option_mass": float(curve["mean_option_mass"].mean()),
+                    "passed": trait_ok,
+                }
+            steer_df = pd.concat(steer_frames, ignore_index=True)
+            steer_df.to_parquet(out_dir / "steering_curves.parquet", index=False)
 
     summary = {
         "L_star": L_star,

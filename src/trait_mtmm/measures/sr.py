@@ -42,7 +42,8 @@ def build_sr_user_prompt(item_text: str, *, scale_reversed: bool) -> str:
         "Rate how accurately the following statement describes you.\n"
         f"Statement: {item_text}\n\n"
         f"{labels}\n\n"
-        "Answer with a single number from 1 to 5."
+        "Respond with exactly one digit (1, 2, 3, 4, or 5). "
+        "Do not write any other text."
     )
 
 
