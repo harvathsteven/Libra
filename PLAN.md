@@ -147,4 +147,5 @@ Full specifications for stimuli (Section 4), measurement (Section 5), phases and
 | 2 Stimuli | Done |
 | 3 Measures and vectors | Done (smoke E2E) |
 | 4 GPU extraction and dev pilot | Done (2026-11-17): gates v2 passed, L*=17; dev pilot acceptance passed |
-| 5–8 | Not started |
+| 5 Preregistration | Written (`PREREGISTRATION.md`); awaiting HUMAN GATE G1 before `prereg-v1` use / Phase 6 |
+| 6–8 | Not started (blocked on G1) |

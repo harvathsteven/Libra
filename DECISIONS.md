@@ -176,6 +176,13 @@ Owner chose "A + B1". This rule is fixed **before** any run of it and will be re
 - **Carry into Phase 5 (preregistration):** (1) A_SR is acquiescence-prone (gate diagnostic); prereg how SR is scored and whether an acquiescence index is reported. (2) BC was the steering-validation criterion for the vectors, so IP–BC convergence (esp. A 0.99) is not fully independent evidence; prereg how it is interpreted. (3) E_IP has low between-persona SD (0.020); note as a risk for E IP validity.
 - **Next:** Phase 5 preregistration → HUMAN GATE G1 before any test persona run.
 
+### Phase 5 — Preregistration (2026-11-18)
+
+- Wrote `PREREGISTRATION.md`: frozen design (Phi-3.5-mini rev, L*=17, letters SR, empty prefill), gate v2 BC steering as the historical validation rule, exclusion thresholds (.50 / 20%), §7 hypotheses H1–H5 and methods verbatim, outcome table 7.4, figures 7.5.
+- Carry-ins from Phase 4: SR acquiescence index as **secondary** only; IP–BC independence caveat; E_IP low-variance risk noted (not hypothesis changes).
+- Tagged commit `prereg-v1` intended with this file + code + stimuli. **No test personas run.**
+- **HUMAN GATE G1:** owner must approve before Phase 6.
+
 ### Phase 3 — measures and smoke E2E (2026-11-16)
 
 - Implemented SR/BC/IP measures, vector extraction (mean-difference, L* by held-out d', steering curves), CLI (`extract`, `pilot`, `smoke`, `figures`, `analyze`).
