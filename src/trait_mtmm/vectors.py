@@ -97,6 +97,128 @@ def choose_L_star(dprimes: dict[str, list[float]]) -> int:
     return best_layer
 
 
+
+TRAIT_NAMES = {"E": "extraversion", "A": "agreeableness"}
+
+
+def collect_extraction_activations(
+    loaded: LoadedModel,
+    adjectives: dict[str, Any],
+    extraction_questions: list[str],
+    *,
+    seed: int,
+    n_triples: int = 6,
+) -> dict[str, dict[str, dict[str, Any]]]:
+    """Run the extraction prompts and return all-layer last-token residuals.
+
+    Returns ``{trait: {pole: {"acts": Tensor[n, n_layers, d] float32,
+    "is_train": list[bool], "triple": list, "question_index": list}}}``.
+    The RNG call order matches the Phase 4 extraction exactly (E high, E low,
+    A high, A low), so the split and vectors are reproducible from the seed.
+    """
+    rng = np.random.default_rng(seed)
+    out: dict[str, dict[str, dict[str, Any]]] = {"E": {}, "A": {}}
+    for trait, name in TRAIT_NAMES.items():
+        for pole in ("high", "low"):
+            words = adjectives[name][pole]["extraction"]
+            pole_seed = seed + (0 if trait == "E" else 100) + (0 if pole == "high" else 10)
+            triples = adjective_triples(words, n=n_triples, seed=pole_seed)
+            prompts = [
+                {
+                    "triple": triple,
+                    "question": q,
+                    "question_index": qi,
+                    "system": extraction_system_prompt(*triple),
+                }
+                for triple in triples
+                for qi, q in enumerate(extraction_questions)
+            ]
+            out[trait][pole] = {"prompts": prompts}
+
+    # 80/20 split: a prompt is train only if both its adjective triple and its
+    # question are in the train subsets; every other prompt is held out.
+    for trait in ("E", "A"):
+        for pole in ("high", "low"):
+            prompts = out[trait][pole].pop("prompts")
+            triples = sorted({p["triple"] for p in prompts})
+            questions = sorted({p["question"] for p in prompts})
+            rng.shuffle(triples)
+            rng.shuffle(questions)
+            n_t_train = max(1, int(0.8 * len(triples)))
+            n_q_train = max(1, int(0.8 * len(questions)))
+            train_triples = set(triples[:n_t_train])
+            train_questions = set(questions[:n_q_train])
+            is_train = [
+                p["triple"] in train_triples and p["question"] in train_questions
+                for p in prompts
+            ]
+            # Ensure a non-empty holdout (only reachable on tiny smoke configs):
+            # move the last train prompt to holdout, as in the original code.
+            if not any(not t for t in is_train) and any(is_train):
+                last = max(i for i, t in enumerate(is_train) if t)
+                is_train[last] = False
+            layer_stacks = [
+                torch.stack(
+                    collect_residuals(loaded, system=p["system"], questions=[p["question"]])[0]
+                )
+                for p in prompts
+            ]
+            out[trait][pole].update(
+                {
+                    "acts": torch.stack(layer_stacks),  # [n, n_layers, d]
+                    "is_train": is_train,
+                    "triple": [p["triple"] for p in prompts],
+                    "question_index": [p["question_index"] for p in prompts],
+                }
+            )
+    return out
+
+
+def split_activations(
+    acts: dict[str, dict[str, dict[str, Any]]],
+) -> tuple[dict[str, dict[str, list[list[torch.Tensor]]]], dict[str, dict[str, list[list[torch.Tensor]]]]]:
+    """Convert stacked activations to per-layer train/holdout lists."""
+    train: dict[str, dict[str, list[list[torch.Tensor]]]] = {}
+    hold: dict[str, dict[str, list[list[torch.Tensor]]]] = {}
+    for trait, poles in acts.items():
+        train[trait], hold[trait] = {}, {}
+        for pole, rec in poles.items():
+            a = rec["acts"].float()
+            n_layers = a.shape[1]
+            tr = [i for i, t in enumerate(rec["is_train"]) if t]
+            ho = [i for i, t in enumerate(rec["is_train"]) if not t]
+            train[trait][pole] = [[a[i, layer] for i in tr] for layer in range(n_layers)]
+            hold[trait][pole] = [[a[i, layer] for i in ho] for layer in range(n_layers)]
+    return train, hold
+
+
+def save_extraction_activations(acts: dict[str, Any], path: Path) -> None:
+    """Save extraction activations (float16) for the label-shuffled null (H4)."""
+    blob = {
+        trait: {
+            pole: {**rec, "acts": rec["acts"].to(torch.float16).cpu()}
+            for pole, rec in poles.items()
+        }
+        for trait, poles in acts.items()
+    }
+    torch.save(blob, path)
+
+
+def vectors_from_activations(
+    acts: dict[str, dict[str, dict[str, Any]]],
+) -> dict[str, list[torch.Tensor]]:
+    """Recompute per-layer mean-difference unit vectors from the train split."""
+    train, _ = split_activations(acts)
+    out: dict[str, list[torch.Tensor]] = {}
+    for trait in train:
+        n_layers = len(train[trait]["high"])
+        out[trait] = [
+            mean_difference_vector(train[trait]["high"][layer], train[trait]["low"][layer])
+            for layer in range(n_layers)
+        ]
+    return out
+
+
 def extract_and_validate(
     loaded: LoadedModel,
     adjectives: dict[str, Any],
@@ -120,71 +242,13 @@ def extract_and_validate(
     Returns a summary dict including L_star and whether gates passed.
     """
     out_dir.mkdir(parents=True, exist_ok=True)
-    rng = np.random.default_rng(seed)
     n_layers = n_transformer_layers(loaded.model)
 
-    # Build prompts per trait/pole
-    records: dict[str, dict[str, list[dict[str, Any]]]] = {
-        "E": {"high": [], "low": []},
-        "A": {"high": [], "low": []},
-    }
-    trait_map = {"E": "extraversion", "A": "agreeableness"}
-
-    for trait, name in trait_map.items():
-        for pole in ("high", "low"):
-            words = adjectives[name][pole]["extraction"]
-            pole_seed = seed + (0 if trait == "E" else 100) + (0 if pole == "high" else 10)
-            triples = adjective_triples(words, n=n_triples, seed=pole_seed)
-            for triple in triples:
-                for qi, q in enumerate(extraction_questions):
-                    records[trait][pole].append(
-                        {
-                            "triple": triple,
-                            "question": q,
-                            "question_index": qi,
-                            "system": extraction_system_prompt(*triple),
-                        }
-                    )
-
-    # 80/20 split by adjective triple and by question
-    train_acts: dict[str, dict[str, list[list[torch.Tensor]]]] = {
-        t: {"high": [[] for _ in range(n_layers)], "low": [[] for _ in range(n_layers)]}
-        for t in ("E", "A")
-    }
-    hold_acts: dict[str, dict[str, list[list[torch.Tensor]]]] = {
-        t: {"high": [[] for _ in range(n_layers)], "low": [[] for _ in range(n_layers)]}
-        for t in ("E", "A")
-    }
-
-    for trait in ("E", "A"):
-        for pole in ("high", "low"):
-            prompts = records[trait][pole]
-            triples = sorted({p["triple"] for p in prompts})
-            questions = sorted({p["question"] for p in prompts})
-            rng.shuffle(triples)
-            rng.shuffle(questions)
-            n_t_train = max(1, int(0.8 * len(triples)))
-            n_q_train = max(1, int(0.8 * len(questions)))
-            train_triples = set(triples[:n_t_train])
-            train_questions = set(questions[:n_q_train])
-
-            for p in prompts:
-                is_train = p["triple"] in train_triples and p["question"] in train_questions
-                # If both sets empty edge case, treat as train
-                layers_list = collect_residuals(
-                    loaded, system=p["system"], questions=[p["question"]]
-                )[0]
-                bucket = train_acts if is_train else hold_acts
-                # If holdout empty, keep a few for holdout forcibly
-                for layer_i, residual in enumerate(layers_list):
-                    bucket[trait][pole][layer_i].append(residual)
-
-            # Ensure holdout non-empty per pole/layer
-            for layer_i in range(n_layers):
-                if not hold_acts[trait][pole][layer_i] and train_acts[trait][pole][layer_i]:
-                    hold_acts[trait][pole][layer_i].append(
-                        train_acts[trait][pole][layer_i].pop()
-                    )
+    acts = collect_extraction_activations(
+        loaded, adjectives, extraction_questions, seed=seed, n_triples=n_triples
+    )
+    save_extraction_activations(acts, out_dir / "extraction_activations.pt")
+    train_acts, hold_acts = split_activations(acts)
 
     vectors_by_layer: dict[str, list[torch.Tensor]] = {"E": [], "A": []}
     dprimes: dict[str, list[float]] = {"E": [], "A": []}

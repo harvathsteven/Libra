@@ -1,8 +1,9 @@
-"""CLI entrypoint: extract, pilot, diagnose, phase4, main, smoke, analyze, figures."""
+"""CLI entrypoint: extract, extract-acts, pilot, diagnose, phase4, main, smoke, analyze, figures."""
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 from typing import Any
@@ -94,10 +95,13 @@ def cmd_extract(cfg: dict[str, Any], *, enforce_gates: bool | None = None) -> di
         sr_format=str(cfg["scoring"].get("sr_format", "letters")),
         enforce_gates=enforce_gates,
     )
+    vec_sha = sha256_file(out / "trait_vectors.pt")
+    summary["trait_vectors_sha256"] = vec_sha
     write_json(
         out / "provenance.json",
         {**provenance_dict(cfg, stage="extract"), "summary": summary},
     )
+    print(f"trait_vectors.pt sha256 {vec_sha}")
     # Freeze L* into the active config when gates pass (Phase 4).
     if summary.get("all_gates_passed") and not is_smoke:
         cfg_path = Path(cfg["_config_path"])
@@ -107,12 +111,93 @@ def cmd_extract(cfg: dict[str, Any], *, enforce_gates: bool | None = None) -> di
     return summary
 
 
-def _load_L_star_and_vectors(cfg: dict[str, Any]) -> tuple[int, dict[str, torch.Tensor], Path]:
+def sha256_file(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def cmd_extract_acts(cfg: dict[str, Any]) -> dict[str, Any]:
+    """Re-run extraction forward passes and save activations only.
+
+    For the existing Phase 4 extract: writes `extraction_activations.pt` and a
+    check that vectors recomputed from it match the pinned `trait_vectors.pt`.
+    Does not overwrite vectors, rerun the gates, or change the config.
+    """
+    from trait_mtmm.vectors import (
+        collect_extraction_activations,
+        save_extraction_activations,
+        vectors_from_activations,
+    )
+
+    seed_everything(cfg["seed"])
+    is_smoke = "smoke" in cfg
+    limits = _smoke_limits(cfg) if is_smoke else {}
+    stim = stimuli_dir(cfg)
+    out = results_dir(cfg) / ("extract_smoke" if is_smoke else "extract")
+    L_star, _, _ = _load_L_star_and_vectors(cfg)  # also verifies the pin
+    blob = load_vectors(out / "trait_vectors.pt")
+
+    loaded = load_model(
+        cfg["model"]["id"],
+        cfg["model"]["revision"],
+        dtype=cfg["model"]["dtype"],
+        device=cfg["model"]["device"],
+    )
+    questions = load_questions(stim / "extraction_questions.txt")
+    if is_smoke:
+        questions = questions[: limits["max_extraction_questions"]]
+    n_triples = limits["n_triples"] if is_smoke else 6
+    acts = collect_extraction_activations(
+        loaded, load_adjectives(stim), questions, seed=cfg["seed"], n_triples=n_triples
+    )
+    save_extraction_activations(acts, out / "extraction_activations.pt")
+    recomputed = vectors_from_activations(acts)
+    cos_by_layer = {
+        t: [
+            float(torch.dot(recomputed[t][i], blob["vectors_by_layer"][t][i].float()).item())
+            for i in range(len(recomputed[t]))
+        ]
+        for t in ("E", "A")
+    }
+    report = {
+        "L_star": L_star,
+        "cosine_at_L_star": {t: cos_by_layer[t][L_star] for t in ("E", "A")},
+        "min_cosine_any_layer": {t: min(cos_by_layer[t]) for t in ("E", "A")},
+        "matches_pinned": all(cos_by_layer[t][L_star] >= 0.999 for t in ("E", "A")),
+        "cosine_by_layer": cos_by_layer,
+    }
+    write_json(
+        out / "extraction_activations_check.json",
+        {**provenance_dict(cfg, stage="extract-acts"), **report},
+    )
+    print(json.dumps({"extract_acts": {k: v for k, v in report.items() if k != "cosine_by_layer"}}, indent=2))
+    return report
+
+
+def _load_L_star_and_vectors(
+    cfg: dict[str, Any], *, require_pin: bool = False
+) -> tuple[int, dict[str, torch.Tensor], Path]:
+    """Load trait vectors; verify `vectors.sha256` from the config when set.
+
+    `require_pin=True` (main run) refuses to run without a pinned hash.
+    """
     is_smoke = "smoke" in cfg
     extract_dir = results_dir(cfg) / ("extract_smoke" if is_smoke else "extract")
     pt = extract_dir / "trait_vectors.pt"
     if not pt.exists():
         raise FileNotFoundError(f"Missing {pt}; run extract first")
+    pinned = (cfg.get("vectors") or {}).get("sha256")
+    if require_pin and not pinned:
+        raise SystemExit("vectors.sha256 is not set in the config; pin the vectors first")
+    if pinned:
+        actual = sha256_file(pt)
+        if actual != pinned:
+            raise SystemExit(
+                f"{pt} sha256 {actual} does not match pinned vectors.sha256 {pinned}"
+            )
     blob = load_vectors(pt)
     L_star = int(blob["L_star"])
     if cfg.get("layer", {}).get("L_star") is not None:
@@ -158,6 +243,8 @@ def cmd_pilot(cfg: dict[str, Any]) -> Path:
 
     prefill = cfg["scoring"].get("assistant_prefill") or ""
     sr_format = str(cfg["scoring"].get("sr_format", "letters"))
+    residual_dir = out / "ip_residuals"
+    residual_dir.mkdir(parents=True, exist_ok=True)
     sr_parts, bc_parts, ip_parts = [], [], []
     for persona in personas:
         sr_parts.append(
@@ -178,14 +265,18 @@ def cmd_pilot(cfg: dict[str, Any]) -> Path:
                 base_seed=cfg["seed"],
             )
         )
-        ip_parts.append(
-            run_ip_for_persona(
-                loaded,
-                persona,
-                probes,
-                vectors=vectors,
-                layer_hidden_index=layer_hidden_index,
-            )
+        ip_df, residuals = run_ip_for_persona(
+            loaded,
+            persona,
+            probes,
+            vectors=vectors,
+            layer_hidden_index=layer_hidden_index,
+            return_residuals=True,
+        )
+        ip_parts.append(ip_df)
+        torch.save(
+            {"persona_id": persona["persona_id"], "residuals": residuals},
+            residual_dir / f"{persona['persona_id']}.pt",
         )
 
     sr_item = pd.concat(sr_parts, ignore_index=True)
@@ -210,6 +301,9 @@ def cmd_pilot(cfg: dict[str, Any]) -> Path:
         {
             **provenance_dict(cfg, stage="pilot"),
             "L_star": L_star,
+            "trait_vectors_sha256": sha256_file(
+                results_dir(cfg) / ("extract_smoke" if is_smoke else "extract") / "trait_vectors.pt"
+            ),
             "n_personas": len(personas),
             "assistant_prefill": prefill,
             "analysis": summary,
@@ -327,6 +421,7 @@ def main(argv: list[str] | None = None) -> None:
         "command",
         choices=[
             "extract",
+            "extract-acts",
             "pilot",
             "diagnose",
             "phase4",
@@ -342,6 +437,7 @@ def main(argv: list[str] | None = None) -> None:
 
     dispatch = {
         "extract": lambda: cmd_extract(cfg),
+        "extract-acts": lambda: cmd_extract_acts(cfg),
         "pilot": lambda: cmd_pilot(cfg),
         "diagnose": lambda: cmd_diagnose(cfg),
         "phase4": lambda: cmd_phase4(cfg),

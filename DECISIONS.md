@@ -178,10 +178,12 @@ Owner chose "A + B1". This rule is fixed **before** any run of it and will be re
 
 ### Phase 5 — Preregistration (2026-11-18)
 
-- Wrote `PREREGISTRATION.md`: frozen design (Phi-3.5-mini rev, L*=17, letters SR, empty prefill), gate v2 BC steering as the historical validation rule, exclusion thresholds (.50 / 20%), §7 hypotheses H1–H5 and methods verbatim, outcome table 7.4, figures 7.5.
-- Carry-ins from Phase 4: SR acquiescence index as **secondary** only; IP–BC independence caveat; E_IP low-variance risk noted (not hypothesis changes).
-- Tagged commit `prereg-v1` intended with this file + code + stimuli. **No test personas run.**
-- **HUMAN GATE G1:** owner must approve before Phase 6.
+- **prereg-v1 draft** (`d171e6e`, written by a separate Cursor session): tagged and pushed to the public remote before G1 review. Kept as a record and superseded; never used for any test run.
+- **Review of v1 found:** (1) H4 nulls and the layer sweep had no inputs, because IP stored only the L* score and extraction activations were not saved; (2) IP was described as a projection, but the code computes cosine; (3) decision rules for H1/H2/H4/H5 and the missing-data rule were unspecified; (4) the extraction was described as 10 questions when there are 20 (480 passes); (5) the trait vectors were not pinned.
+- **Code added before G1 (no test data touched):** IP caches all-layer last-token residuals (float16) per persona; extraction saves `extraction_activations.pt`; `extract-acts` command (and notebook stage) re-runs the extraction passes against the existing vectors without changing them; `vectors.sha256` pin, checked at load and required for the main run. The refactored extraction reproduces the old smoke vectors (cos ≥ 0.9999998 at every layer). Tests: `tests/test_prereg_v2_caching.py`; full suite passes (27 fast, 3 slow).
+- **Stimulus finding:** implicit test personas encode only the quadrant, through one of 3 cue sentences per quadrant (12 cues across 64 personas). "very" vs "somewhat" labels were assigned by `k % 2` and are not in the text. Raised as a G1 decision; stimuli unchanged.
+- **PREREGISTRATION.md v2 draft** written with explicit decision rules, a listwise rule, a pole-coded manipulation check for implicit personas, and a preregistered cluster-bootstrap robustness check. Not tagged. On approval → tag `prereg-v2`.
+- **HUMAN GATE G1:** pending.
 
 ### Phase 3 — measures and smoke E2E (2026-11-16)
 

@@ -9,6 +9,10 @@ layer:
   # Set automatically by `trait-mtmm phase4` / extract when validation passes.
   # Frozen 2026-11-17 from Kaggle extract (gate v2 passed).
   L_star: 17
+vectors:
+  # SHA-256 of results/extract/trait_vectors.pt from the Phase 4 Kaggle extract
+  # (gate v2 passed). Set at G1; the main run refuses to start without it.
+  sha256: null
 paths:
   stimuli_dir: stimuli
   results_dir: results
