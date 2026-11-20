@@ -176,6 +176,12 @@ Owner chose "A + B1". This rule is fixed **before** any run of it and will be re
 - **Carry into Phase 5 (preregistration):** (1) A_SR is acquiescence-prone (gate diagnostic); prereg how SR is scored and whether an acquiescence index is reported. (2) BC was the steering-validation criterion for the vectors, so IP–BC convergence (esp. A 0.99) is not fully independent evidence; prereg how it is interpreted. (3) E_IP has low between-persona SD (0.020); note as a risk for E IP validity.
 - **Next:** Phase 5 preregistration → HUMAN GATE G1 before any test persona run.
 
+### Project marked complete (2026-11-20)
+
+- Owner: "push what we have and mark the project as complete for now". The project is closed at this commit.
+- Gaps 2–4 from the next entry are **deferred, not done**: off-target steering shift (§5.4), secondary IP variant on SR/BC prompts (§5.5), and clean-clone reproduction from committed results (Phase 8/§10).
+- Gap 1 (the triple split) needed only logging and is closed.
+
 ### Original plan recovered: check against PLAN §4–10 (2026-11-20)
 
 The owner supplied the full original plan (`~/Downloads/PLAN.md`), which is now restored into `PLAN.md`. Earlier repo copies had a placeholder for §4–10. Check results:

@@ -395,3 +395,5 @@ The full original plan was restored on 2026-11-20. Earlier repo copies had only 
 | 6 Main run | Done (2026-11-20): G2 passed; 97 conditions, 0 exclusions |
 | 7 Analysis | Done (2026-11-20): code `40433bf` committed before run; results in `results/analysis/`, verdicts in DECISIONS |
 | 8 Report | Done (2026-11-20): `REPORT.md` released; G3 passed |
+
+**Project status: complete for now (2026-11-20, owner decision).** Deferred against §5.4, §5.5 and §10: off-target steering shift, the secondary IP variant on SR/BC prompts, and a clean-clone reproduction from committed results. See `DECISIONS.md`.
