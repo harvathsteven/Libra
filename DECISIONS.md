@@ -188,6 +188,24 @@ Owner chose "A + B1". This rule is fixed **before** any run of it and will be re
   - that the null vectors are seeded;
   - that the data with signal support H1, H2 and H4 and the noise data support none of them.
 - **Clarifications D1–D11** were logged in `DEVIATIONS.md` before the run.
+- **Run (2026-11-20, code at `40433bf`, `results/analysis/`, `figures/main_*.png`).**
+  - Data checks: N = 96 listwise in the pooled sample (32 explicit, 64 implicit); 0 exclusions; stored scores reproduced (max |Δ| 9e−16); residual cache reproduces IP (max |Δ| 1.4e−8); 12 cue clusters of 5–6; no statistic had more than 1% undefined resamples.
+  - **Preregistered verdicts** (pooled sample, Pearson, both bootstraps). Spearman gives the same verdicts.
+    - **H1:** holds for E (SR–BC .79, SR–IP .54, BC–IP .49). Fails for A (SR–BC .04, SR–IP −.20; BC–IP .68 passes).
+    - **H2:** fails for E, on 1 of 6 comparisons: r(E_BC,E_IP) .49 − |r(A_BC,E_IP)| .42, so d = .07, CI [−.15, .28]. Fails for A on 4 of 6.
+    - **H3:** E d = +.045, Holm p = .52, not significant. A d = −.88, Holm p < .001, so IP tracks BC more than SR. The §1.3 caveat applies.
+    - **H4:** fails for both traits. E passes only IP–SR against the random null (.54 > p95 .50). A passes only IP–BC against the random null (.68 > .53). All four shuffled-null comparisons fail.
+    - **H5 (secondary):** holds for A (Δ = .81: explicit .51, implicit −.30). Fails for E (Δ = .21), whose cluster-bootstrap CI is [−.03, .60].
+    - §3.4 patterns: E "IP tracks neither, or fails H4"; A "IP tracks BC more than SR" + "fails H4".
+  - **Secondary results.**
+    - Reliabilities (pooled): SR α E .93, A .58; BC α E .92, A .89; IP split-half ≥ .996. A_SR α in the implicit sample is .09.
+    - Manipulation check, same trait (pooled): E_SR .49, E_BC .56, E_IP .48; A_SR .27, A_BC .53, A_IP .36. Implicit A_SR .02.
+    - Acquiescence index ACQ_E vs E_SR .95 (pooled).
+    - The layer sweep is stable from about layer 12 onward. At L* = 17 it is representative.
+  - **Interpretive notes (exploratory, no rule changed).**
+    - (1) The random-null r has SD .30–.38 around 0, so random directions in residual space correlate with the trait scores as strongly as the trait vectors do. Between-persona residual variance is low-rank and trait-related.
+    - (2) The label-shuffled null is not trait-free here: |cos(shuffled vector, v_T)| > .5 for 50% of A permutations and 29% of E permutations. That is because the poles separate so strongly (d′ 15.4 / 7.1). The A shuffled null is bimodal at about ±.68. H4 against the shuffled null is therefore a stricter test than intended, and the report must say so. The verdict stands as preregistered.
+    - (3) A_SR behaves anomalously: low reliability, near-zero implicit manipulation check, negative correlations in the implicit set. This is consistent with the §1.4 acquiescence risk.
 
 ### Phase 6 — main run (2026-11-19)
 
