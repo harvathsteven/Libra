@@ -176,6 +176,19 @@ Owner chose "A + B1". This rule is fixed **before** any run of it and will be re
 - **Carry into Phase 5 (preregistration):** (1) A_SR is acquiescence-prone (gate diagnostic); prereg how SR is scored and whether an acquiescence index is reported. (2) BC was the steering-validation criterion for the vectors, so IP–BC convergence (esp. A 0.99) is not fully independent evidence; prereg how it is interpreted. (3) E_IP has low between-persona SD (0.020); note as a risk for E IP validity.
 - **Next:** Phase 5 preregistration → HUMAN GATE G1 before any test persona run.
 
+### Phase 7 — analysis (2026-11-20)
+
+- **Code before data:** `src/trait_mtmm/mtmm.py` implements prereg §2–§3, `src/trait_mtmm/figures_main.py` implements §3.5, and the CLI command is `phase7`. All three were committed before being run on `results/main`. `phase7` refuses to run if tracked files have uncommitted changes, or if the main run's vectors do not match the pin.
+- **Tests (`tests/test_phase7_analysis.py`, synthetic data and stimuli only).** They check:
+  - the weighted correlations against Pearson/Spearman on expanded resamples;
+  - the cluster weights (explicit singletons give the condition bootstrap exactly);
+  - the 12 cue clusters (sizes 5–6, one quadrant each);
+  - the §2 thresholds at 4/5 of 24 and 20/21 of 100;
+  - Holm, bootstrap p and α;
+  - that the null vectors are seeded;
+  - that the data with signal support H1, H2 and H4 and the noise data support none of them.
+- **Clarifications D1–D11** were logged in `DEVIATIONS.md` before the run.
+
 ### Phase 6 — main run (2026-11-19)
 
 - **Wiring (after `prereg-v2`, as allowed by prereg §5):** `main` runs the 96 test personas plus baseline through `_score_personas`, the same SR/BC/IP path the dev pilot now uses. It caches residuals, requires the pinned vectors and refuses to run unless L* = 17.
@@ -183,6 +196,13 @@ Owner chose "A + B1". This rule is fixed **before** any run of it and will be re
 - **No outcomes at run time:** `main` reports only data quality in `main_quality.json` (option mass, item and condition exclusion counts, completeness, non-finite IP). It prints no scores, correlations or SDs, so the Phase 7 analysis code is written before outcomes are seen.
 - **Smoke test:** `tests/test_phase6_main.py`; all 31 tests pass.
 - **G2:** owner runs `STAGE = "main"` on Kaggle with `trait_vectors.pt` uploaded as dataset `libra-vectors`.
+- **G2 passed: main run on Kaggle (finished 2026-11-20T07:00 UTC).** The owner returned `libra_main_results.zip`, copied to `results/main/` (gitignored). Only provenance and data quality were checked:
+  - commit `dab96bb` in `provenance.json` and in all 97 `parts/*.done.json`;
+  - vectors sha256 `5e12b0ba…a402ca` matches the pin;
+  - L* = 17, model revision `2fe19245…`, torch 2.11.0+cu130, transformers 5.20.2 (same as Phase 4);
+  - bundled `default.yaml` identical to the repo.
+  - `main_quality.json`: 97 conditions (32 explicit, 64 implicit, 1 baseline); rows complete; SR option mass mean 0.99995 (min 0.983); BC mean 0.998 (min 0.580); 0 items below 0.50; 0 condition scores excluded; 0 non-finite IP.
+  - No scores or correlations were opened. Phase 7 analysis code is written and committed before it is run on these files (prereg §5).
 
 ### Phase 5 — Preregistration (2026-11-18)
 

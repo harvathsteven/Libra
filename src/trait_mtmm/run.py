@@ -1,4 +1,4 @@
-"""CLI entrypoint: extract, extract-acts, pilot, diagnose, phase4, main, smoke, analyze, figures."""
+"""CLI entrypoint: extract, extract-acts, pilot, diagnose, phase4, main, phase7, smoke, analyze, figures."""
 
 from __future__ import annotations
 
@@ -431,6 +431,116 @@ def cmd_main(cfg: dict[str, Any]) -> Path:
     return out
 
 
+def _git_tracked_changes() -> str:
+    import subprocess
+
+    return subprocess.check_output(
+        ["git", "status", "--porcelain", "--untracked-files=no"], cwd=repo_root(), text=True
+    ).strip()
+
+
+def cmd_phase7(cfg: dict[str, Any]) -> Path:
+    """Phase 7 preregistered analysis of the main run (PREREGISTRATION.md §2–§3).
+
+    Refuses to run with uncommitted changes to tracked files, so the analysis
+    code that produced the results is always the recorded commit (prereg §5).
+    """
+    from trait_mtmm.figures_main import write_main_figures
+    from trait_mtmm.mtmm import CORR_METHODS, SAMPLES, run_analysis
+
+    if "smoke" in cfg:
+        raise SystemExit("phase7 runs on the main-run results only")
+    dirty = _git_tracked_changes()
+    if dirty:
+        raise SystemExit(f"Commit the analysis code first; tracked changes:\n{dirty}")
+    L_star, _, extract_dir = _load_L_star_and_vectors(cfg, require_pin=True)
+    main_dir = results_dir(cfg) / "main"
+    main_prov = json.loads((main_dir / "provenance.json").read_text(encoding="utf-8"))
+    pin = cfg["vectors"]["sha256"]
+    if main_prov.get("trait_vectors_sha256") != pin or main_prov.get("is_smoke"):
+        raise SystemExit("results/main was not produced with the pinned vectors")
+    if L_star != 17 or int(main_prov.get("L_star", -1)) != 17:
+        raise SystemExit("L* must be 17 (prereg-v2)")
+
+    stim = stimuli_dir(cfg)
+    personas = load_personas(stim, which="test", include_baseline=True)
+    ipip = load_ipip(stim)
+    bc = load_bc(stim)
+    n_items = {
+        "SR": {t: sum(r["trait"] == t for r in ipip) for t in ("E", "A")},
+        "BC": {t: sum(r["trait"] == t for r in bc) for t in ("E", "A")},
+    }
+    a = cfg["analysis"]
+    sc = cfg["scoring"]
+    res = run_analysis(
+        main_dir=main_dir,
+        vectors_blob=load_vectors(extract_dir / "trait_vectors.pt"),
+        extraction_acts=torch.load(extract_dir / "extraction_activations.pt", weights_only=False),
+        personas=personas,
+        n_items=n_items,
+        L_star=L_star,
+        B=int(a["bootstrap_n"]),
+        seed=int(a["bootstrap_seed"]),
+        n_null=int(a["null_vectors"]),
+        alpha=float(a["alpha"]),
+        drop_mass=float(sc["drop_item_option_mass"]),
+        drop_frac=float(sc["drop_condition_item_frac"]),
+    )
+
+    out = results_dir(cfg) / "analysis"
+    out.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(res["rows"]).to_csv(out / "hypothesis_components.csv", index=False)
+    for name in SAMPLES:
+        for m in CORR_METHODS:
+            res["matrices"][name][m].to_csv(out / f"mtmm_{m}_{name}.csv")
+        res["samples"][name].to_csv(out / f"listwise_{name}.csv", index=False)
+    pd.DataFrame(res["manipulation_check"]).to_csv(out / "manipulation_check.csv", index=False)
+    pd.DataFrame(res["disattenuated"]).to_csv(out / "disattenuated.csv", index=False)
+    pd.DataFrame(res["acquiescence"]).to_csv(out / "acquiescence.csv", index=False)
+    pd.DataFrame(res["layer_sweep"]).to_csv(out / "layer_sweep.csv", index=False)
+    res["exclusion_log"].to_csv(out / "exclusion_log.csv", index=False)
+    np.savez_compressed(out / "null_correlations.npz", **res["null_arrays"])
+    write_json(
+        out / "analysis.json",
+        {
+            "prereg": "prereg-v2",
+            "sample_info": res["sample_info"],
+            "exclusions": res["exclusions"],
+            "checks": res["checks"],
+            "verdicts": res["verdicts"],
+            "outcome_patterns": res["outcome_patterns"],
+            "reliability": res["reliability"],
+            "baseline": res["baseline"],
+        },
+    )
+    write_json(
+        out / "provenance.json",
+        {
+            **provenance_dict(cfg, stage="phase7"),
+            "main_run_git_commit": main_prov.get("git_commit"),
+            "trait_vectors_sha256": sha256_file(extract_dir / "trait_vectors.pt"),
+            "extraction_activations_sha256": sha256_file(extract_dir / "extraction_activations.pt"),
+            "bootstrap_n": int(a["bootstrap_n"]),
+            "bootstrap_seed": int(a["bootstrap_seed"]),
+            "null_vectors": int(a["null_vectors"]),
+        },
+    )
+    steer_p = extract_dir / "steering_curves.parquet"
+    dp_p = extract_dir / "dprime_by_layer.parquet"
+    figs = write_main_figures(
+        res,
+        fig_dir=figures_dir(cfg),
+        L_star=L_star,
+        steer=pd.read_parquet(steer_p) if steer_p.exists() else None,
+        dprime=pd.read_parquet(dp_p) if dp_p.exists() else None,
+    )
+    for v in res["verdicts"]:
+        if v["sample"] == "pooled" and v["corr_method"] == "pearson":
+            print(f"{v['hypothesis']} {v['trait']}: {'holds' if v['holds'] else 'does not hold'}")
+    print(f"Phase 7 analysis written to {out}; figures: {[str(p) for p in figs]}")
+    return out
+
+
 def cmd_diagnose(cfg: dict[str, Any]) -> dict[str, Any]:
     is_smoke = "smoke" in cfg
     pilot_dir = results_dir(cfg) / ("pilot_smoke" if is_smoke else "pilot")
@@ -538,6 +648,7 @@ def main(argv: list[str] | None = None) -> None:
             "diagnose",
             "phase4",
             "main",
+            "phase7",
             "analyze",
             "figures",
             "smoke",
@@ -554,6 +665,7 @@ def main(argv: list[str] | None = None) -> None:
         "diagnose": lambda: cmd_diagnose(cfg),
         "phase4": lambda: cmd_phase4(cfg),
         "main": lambda: cmd_main(cfg),
+        "phase7": lambda: cmd_phase7(cfg),
         "analyze": lambda: cmd_analyze(cfg),
         "figures": lambda: cmd_figures(cfg),
         "smoke": lambda: cmd_smoke(cfg),
