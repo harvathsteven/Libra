@@ -1,4 +1,4 @@
-"""CLI entrypoint: extract, extract-acts, pilot, diagnose, phase4, main, phase7, smoke, analyze, figures."""
+"""CLI entrypoint: extract, extract-acts, pilot, diagnose, phase4, main, phase7, report, smoke, analyze, figures."""
 
 from __future__ import annotations
 
@@ -541,6 +541,33 @@ def cmd_phase7(cfg: dict[str, Any]) -> Path:
     return out
 
 
+def cmd_report(cfg: dict[str, Any]) -> Path:
+    """Phase 8: generate report tables (and exploratory checks) and fill REPORT.md blocks."""
+    from trait_mtmm.report import build_tables, exploratory, fill_report
+
+    if "smoke" in cfg:
+        raise SystemExit("report runs on the main-run results only")
+    L_star, _, extract_dir = _load_L_star_and_vectors(cfg, require_pin=True)
+    analysis_dir = results_dir(cfg) / "analysis"
+    listwise = pd.read_csv(analysis_dir / "listwise_pooled.csv")
+    expl = exploratory(
+        main_dir=results_dir(cfg) / "main",
+        extract_dir=extract_dir,
+        listwise=listwise,
+        L_star=L_star,
+        n_null=int(cfg["analysis"]["null_vectors"]),
+    )
+    write_json(analysis_dir / "exploratory.json", {**expl, "git_commit": provenance_dict(cfg, stage="report")["git_commit"]})
+    tables = build_tables(analysis_dir, extract_dir, expl)
+    (analysis_dir / "report_tables.md").write_text(
+        "\n\n".join(f"## {k}\n\n{v}" for k, v in tables.items()) + "\n", encoding="utf-8"
+    )
+    report = repo_root() / "REPORT.md"
+    used = fill_report(report, tables) if report.exists() else []
+    print(json.dumps({"tables": list(tables), "filled_in_REPORT.md": used}, indent=2))
+    return analysis_dir
+
+
 def cmd_diagnose(cfg: dict[str, Any]) -> dict[str, Any]:
     is_smoke = "smoke" in cfg
     pilot_dir = results_dir(cfg) / ("pilot_smoke" if is_smoke else "pilot")
@@ -649,6 +676,7 @@ def main(argv: list[str] | None = None) -> None:
             "phase4",
             "main",
             "phase7",
+            "report",
             "analyze",
             "figures",
             "smoke",
@@ -666,6 +694,7 @@ def main(argv: list[str] | None = None) -> None:
         "phase4": lambda: cmd_phase4(cfg),
         "main": lambda: cmd_main(cfg),
         "phase7": lambda: cmd_phase7(cfg),
+        "report": lambda: cmd_report(cfg),
         "analyze": lambda: cmd_analyze(cfg),
         "figures": lambda: cmd_figures(cfg),
         "smoke": lambda: cmd_smoke(cfg),

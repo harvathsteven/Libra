@@ -364,3 +364,17 @@ def test_figures_render(tmp_path: Path) -> None:
                            "dprime_mean": [1, 2.5, 3.5, 2]})
     paths = write_main_figures(res, fig_dir=tmp_path / "figs", L_star=L_STAR, steer=steer, dprime=dprime)
     assert len(paths) == 6 and all(p.stat().st_size > 0 for p in paths)
+
+
+def test_report_blocks_and_escaping(tmp_path: Path) -> None:
+    from trait_mtmm.report import _md, fill_report
+
+    md = _md(pd.DataFrame([{"a|b": "|r|", "c": 1}]))
+    assert "a\\|b" in md and "\\|r\\|" in md
+    rep = tmp_path / "REPORT.md"
+    rep.write_text("x\n<!-- BEGIN:t1 -->\nold\n<!-- END:t1 -->\ny\n")
+    assert fill_report(rep, {"t1": "NEW"}) == ["t1"]
+    assert "NEW" in rep.read_text() and "old" not in rep.read_text()
+    rep.write_text("<!-- BEGIN:missing -->\n<!-- END:missing -->")
+    with pytest.raises(KeyError):
+        fill_report(rep, {"t1": "NEW"})

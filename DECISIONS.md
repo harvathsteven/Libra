@@ -176,6 +176,20 @@ Owner chose "A + B1". This rule is fixed **before** any run of it and will be re
 - **Carry into Phase 5 (preregistration):** (1) A_SR is acquiescence-prone (gate diagnostic); prereg how SR is scored and whether an acquiescence index is reported. (2) BC was the steering-validation criterion for the vectors, so IP–BC convergence (esp. A 0.99) is not fully independent evidence; prereg how it is interpreted. (3) E_IP has low between-persona SD (0.020); note as a risk for E IP validity.
 - **Next:** Phase 5 preregistration → HUMAN GATE G1 before any test persona run.
 
+### Phase 8 — report (2026-11-20)
+
+- **Scope.** The deliverables (§8), related work (§9) and definition of done (§10) are in the owner brief, which is not in the repository. Without them, Phase 8 delivers what the repository itself specifies:
+  - `REPORT.md` (in the PLAN §3 layout);
+  - the content prereg §3.4–§3.5 and §4 require (outcome table, six figures, power statement);
+  - the PLAN rule that every number comes from committed code.
+  The owner should check this against the brief at G3.
+- **Generated tables.** `python -m trait_mtmm.run report` builds every REPORT.md table from `results/analysis` and overwrites the marked blocks. Prose numbers are copied from those tables.
+- **Exploratory, labeled in the report.** Spread of the null distributions; PCA of the persona residuals at L* (PC1 38% of variance, |r| .92 with explicit/implicit; PC2 21%, related to the trait scores); how far the shuffled-null vectors align with v_T. These were added after the results were seen, to explain the H4 failure, and change no verdict.
+- **Open for G3:**
+  - (1) push the report commit to the public remote;
+  - (2) whether to commit `figures/main_*.png` (REPORT.md links them) and/or the small Phase 7 tables from `results/analysis/`, both currently gitignored;
+  - (3) the H1–H5 wording is still unverified against the brief.
+
 ### Phase 7 — analysis (2026-11-20)
 
 - **Code before data:** `src/trait_mtmm/mtmm.py` implements prereg §2–§3, `src/trait_mtmm/figures_main.py` implements §3.5, and the CLI command is `phase7`. All three were committed before being run on `results/main`. `phase7` refuses to run if tracked files have uncommitted changes, or if the main run's vectors do not match the pin.
