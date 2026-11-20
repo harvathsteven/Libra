@@ -10,6 +10,10 @@ Libra is a preregistered construct-validity study. It measures two Big Five trai
 
 ---
 
+## Main result
+
+For Extraversion, a questionnaire, a forced-choice behavior test and an activation "persona vector" agree across 96 personas. For Agreeableness, choices and activations agree, but the model's self-report agrees with neither. The persona vectors are not shown to be trait-specific: random directions in activation space correlate with the trait scores about as strongly, because between-persona variation is dominated by a few directions, mainly prompt style.
+
 ## Key findings
 
 All results are for `microsoft/Phi-3.5-mini-instruct` across 96 persona prompts. Verdicts follow the preregistered rules, and each had to hold under two bootstrap schemes.
@@ -109,18 +113,20 @@ TRAIT is a gated dataset. Rebuilding the BC items needs a Hugging Face token in 
 ## Limitations
 
 - One 3.8B model, so this is a pilot, not a claim about LLMs in general.
-- Forced-choice answers are not real behavior.
-- The 64 implicit personas share 12 cue sentences, so their effective sample size is smaller than 64. This is handled with a cluster bootstrap.
-- The IP–BC agreement is not independent of how the vectors were validated.
+- Forced choice measures stated intention, not behavior.
+- Personas are designed conditions, not independent individuals. The 64 implicit personas share 12 cue sentences, which is handled with a cluster bootstrap.
+- Content overlap between personas and items may inflate convergence despite the banned-terms lint.
+- IP is one linear direction at one token position, which is only one of many possible internal measures.
+- The IP–BC agreement is not independent of how the vectors were validated. BC items come from TRAIT and were not re-validated.
 
 See [`REPORT.md` §7](REPORT.md#7-limitations) for the full list.
 
 ## What I'd do next
 
+- More models and sizes, all five traits, open-ended behavior rated by people, and confirmatory factor analysis with method factors.
 - Use a null built from vectors orthogonal to the trait direction (or from a different contrast), so that "trait-specific" can be told apart from "aligned with the dominant persona directions".
 - Remove the prompt-genre component, or match persona styles, before projecting.
 - Replace the Likert self-report with a forced-choice or balanced-keying format that resists acquiescence.
-- Repeat the analysis on several models to see whether the low-rank persona structure is general.
 
 ## Citation and license
 

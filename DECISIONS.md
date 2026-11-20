@@ -176,6 +176,20 @@ Owner chose "A + B1". This rule is fixed **before** any run of it and will be re
 - **Carry into Phase 5 (preregistration):** (1) A_SR is acquiescence-prone (gate diagnostic); prereg how SR is scored and whether an acquiescence index is reported. (2) BC was the steering-validation criterion for the vectors, so IP–BC convergence (esp. A 0.99) is not fully independent evidence; prereg how it is interpreted. (3) E_IP has low between-persona SD (0.020); note as a risk for E IP validity.
 - **Next:** Phase 5 preregistration → HUMAN GATE G1 before any test persona run.
 
+### Original plan recovered: check against PLAN §4–10 (2026-11-20)
+
+The owner supplied the full original plan (`~/Downloads/PLAN.md`), which is now restored into `PLAN.md`. Earlier repo copies had a placeholder for §4–10. Check results:
+- **H1–H5 wording:** matches §7.2 word for word (only change: "in 7.3" dropped from H4). The "unverified against the brief" caveat in prereg §3.2 and §7 is resolved. The prereg itself is frozen and left unchanged.
+- **§8 deliverables:**
+  - REPORT.md restructured: motivation and related work first, plus the six required limitations and the four required next steps. About 3,100 words of prose, within the 2,000–3,500 range.
+  - README now has the main result in three sentences and the required limitations.
+- **Gaps found (not yet resolved):**
+  1. §5.4 asks for an **80/20 split by adjective triple** and by question. The question split is 16/20 (80%). The triple split is 4/6 (67%), because six triples cannot be split 80/20, and the closest options are 4/6 and 5/6. This was not logged at the time; it is logged now. It affected extraction only, before any test data.
+  2. §5.4 asks for the **off-target trait shift** under steering. Not computed: the steering runs measured only the target trait. Needs a GPU re-run of steering on the baseline.
+  3. §5.5 asks for a **secondary IP variant**: projections on the SR and BC prompts themselves, reported separately. Not implemented, and not in the prereg. Needs a GPU pass that captures residuals on the SR and BC prompts. If run now, it must be labeled as run after the results were seen.
+  4. Phase 8 and §10 ask for a **clean-clone reproduction** of the analysis from committed results. Results are gitignored. `phase7` needs the parquet tables (about 1.1 MB), `ip_residuals/` (about 950 MB) and `extraction_activations.pt` (94 MB), so reproduction needs a hosting decision.
+- **§10 notes:** the `prereg-v1` tag exists and predates all test results. The analysis followed `prereg-v2` (also before test results; v1 superseded at review). Spend: $0.
+
 ### Phase 8 — report (2026-11-20)
 
 - **Scope.** The deliverables (§8), related work (§9) and definition of done (§10) are in the owner brief, which is not in the repository. Without them, Phase 8 delivers what the repository itself specifies:

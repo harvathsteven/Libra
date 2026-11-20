@@ -26,12 +26,32 @@ Overall: for this model, the E construct shows cross-method convergence, but an 
 
 ---
 
-## 1. Research question
+## 1. Motivation and related work
 
+Three kinds of measurement are used to assign personality traits to language models:
+- **self-report:** the model answers a questionnaire;
+- **behavioral choice:** the model picks actions in scenarios;
+- **activation-based measures:** hidden states are projected onto a "persona vector".
+
+Each is widely used, but mostly on its own or in pairs. Prior work shows that LLM self-report and behavior can dissociate. Persona vectors are increasingly used to monitor and steer models on the assumption that they track the trait. If a trait is real for a model, the three methods should agree on it and should separate it from other traits. That is the logic of the multitrait–multimethod matrix (Campbell & Fiske, 1959). This pilot applies that test to all three methods at once, under shared persona conditions.
+
+**Research questions.**
 1. Do SR, BC and IP converge on the same trait and discriminate between traits?
 2. Does IP track what the model says about itself (SR), what it chooses (BC), both, or neither?
 
-This is a pilot on one 3.8B-parameter model. It makes no claims about LLMs in general, and it does not claim that forced-choice answers are real behavior.
+This is a pilot on one 3.8B-parameter model. It makes no claims about LLMs in general, and forced-choice answers measure stated intention, not behavior.
+
+**Related work.** These references were checked in Phase 0 (`DECISIONS.md`). No prior study combining SR, BC and activation-based measures in one MTMM under shared persona conditions was found as of 2026-11-16.
+
+- Campbell & Fiske (1959): the multitrait–multimethod matrix.
+- Serapio-García et al. (arXiv:2307.00184): MTMM across two LLM personality questionnaires (IPIP-NEO, BFI).
+- Lee et al., TRAIT (arXiv:2406.14703; NAACL 2025 Findings): the BC item source.
+- Han et al. (arXiv:2509.03730): LLM self-report and behavior dissociate.
+- arXiv:2606.09843: an LLM-native self-report instrument; self-report does not predict human-rated open-ended behavior (mean r ≈ .09).
+- Chen et al., persona vectors (arXiv:2507.21509); PERSONA (arXiv:2602.15669, ICLR 2026): activation trait vectors for monitoring and control.
+- arXiv:2602.15847: Big Five steering vectors are geometrically entangled (cf. cos(v_E, v_A) = .23 here).
+- Lu et al., Assistant Axis (arXiv:2601.10387); IRIS (arXiv:2604.13846, ACL 2026 Findings); Zeng et al. (arXiv:2607.13162): persona structure and auditing in activation space.
+- Johnson (2014): IPIP-NEO-120. Goldberg (1992): Big Five adjective markers.
 
 ## 2. Design
 
@@ -404,27 +424,26 @@ Half of the A shuffled vectors have |cos| > 0.5 with v_A. The A shuffled null fo
 
 ## 7. Limitations
 
-- One model and one pilot: no claims about other models or about LLMs in general.
-- Forced-choice answers are not real behavior.
-- The implicit personas encode only their quadrant, through 12 cue sentences. The effective N is below 64 (and below 96 pooled). The cluster bootstrap addresses this for inference; the power figures do not.
-- The trait vectors were validated by steering BC, so IP–BC estimates are not independent of that validation (prereg §1.3).
-- The hypothesis wording (H1–H5) was transcribed from the plan, whose source brief is not in the repository. The owner accepted it at G1 without checking it against the brief.
-- Manipulation checks for implicit personas use pole coding only.
-- IP reliability near 1.0 reflects a persona-dominated residual, not trait precision.
+- **One small model.** No claims about other models, sizes or LLMs in general.
+- **Forced choice measures stated intention, not behavior.** BC asks which action the model would take, and nothing is observed being done.
+- **Personas are designed conditions, not independent individuals.** The 96 conditions come from a factorial design. The 64 implicit personas encode only their quadrant, through 12 cue sentences, so the effective N is below 64 (and below 96 pooled). The cluster bootstrap addresses this for inference; the power figures do not.
+- **Content overlap may inflate convergence.** Personas, questionnaire items and scenarios all describe social behavior. A lint test bans trait adjectives, trait names and distinctive IPIP phrases from the implicit personas and probes, but overlap in meaning can remain. It may raise correlations between methods, especially for explicit personas.
+- **One internal measure among many.** IP is a single linear direction (a mean difference) read at one token position and one layer. Other probes, positions or nonlinear readouts might behave differently, and the H4 failure applies to this measure only.
+- **BC item provenance.** BC items are 100 per trait sampled (seed 42) from TRAIT (`mirlab/TRAIT`, CC-BY-4.0). Their validity as behavioral indicators rests on that dataset's construction, which this project did not re-validate.
+- **Vector validation is not independent of BC.** The trait vectors were accepted partly because steering them moved BC (prereg §1.3), so IP–BC estimates are not independent of that validation.
+- **Manipulation checks for implicit personas use pole coding only.**
+- **IP reliability near 1.0** reflects a persona-dominated residual, not trait precision.
 
-## 8. Related work
+## 8. Next steps
 
-These references were checked in Phase 0 (`DECISIONS.md`). No prior study combining SR, BC and activation-based measures in one MTMM under shared persona conditions was found as of 2026-11-16.
-
-- Campbell & Fiske (1959): the multitrait–multimethod matrix.
-- Serapio-García et al. (arXiv:2307.00184): MTMM across two LLM personality questionnaires (IPIP-NEO, BFI).
-- Lee et al., TRAIT (arXiv:2406.14703; NAACL 2025 Findings): the BC item source.
-- Han et al. (arXiv:2509.03730): LLM self-report and behavior dissociate.
-- arXiv:2606.09843: an LLM-native self-report instrument; self-report does not predict human-rated open-ended behavior (mean r ≈ .09).
-- Chen et al., persona vectors (arXiv:2507.21509); PERSONA (arXiv:2602.15669, ICLR 2026): activation trait vectors for monitoring and control.
-- arXiv:2602.15847: Big Five steering vectors are geometrically entangled (cf. cos(v_E, v_A) = .23 here).
-- Lu et al., Assistant Axis (arXiv:2601.10387); IRIS (arXiv:2604.13846, ACL 2026 Findings); Zeng et al. (arXiv:2607.13162): persona structure and auditing in activation space.
-- Johnson (2014): IPIP-NEO-120. Goldberg (1992): Big Five adjective markers.
+- **More models and sizes.** Test whether the low-rank persona structure, and the H4 failure that follows from it, is general or specific to Phi-3.5-mini.
+- **Open-ended behavior with human ratings.** Replace or complement forced choice with generated behavior rated by people, so BC measures what the model does, not what it says it would do.
+- **All five traits.** Wider trait coverage gives more heterotrait comparisons and a stronger test of discriminant validity.
+- **Confirmatory factor analysis with method factors.** Model trait and method variance jointly instead of reading the MTMM matrix pairwise. That would separate the prompt-genre and acquiescence factors seen here from trait variance.
+- **Design changes this pilot suggests.**
+  - A null built from vectors orthogonal to v_T, or residuals with the prompt-genre component removed, to separate "trait-specific" from "aligned with dominant persona directions".
+  - A self-report format that resists acquiescence.
+  - Implicit personas with more distinct cue sentences.
 
 ## 9. Reproducibility
 
