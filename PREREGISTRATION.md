@@ -27,7 +27,7 @@ Items marked **[G1 decision]** need the owner's choice before approval. Each one
 | IP | Cosine similarity between the last-prompt-token residual and the trait vector, mean over 50 probes (`stimuli/probe_questions.txt`) |
 | Scoring | Next-token probabilities only; no sampling, no generation |
 | Layer L* | **17**: index of the transformer block counted from 0 (excluding embeddings). The IP residual is the output of that block (`hidden_states[18]`); steering hooks the same block |
-| Trait vectors | `results/extract/trait_vectors.pt` from a gate-v2-passing Kaggle extract (the 2026-11-18 re-run of the Phase 4 workflow, or the original 2026-11-17 run if its file is recovered with matching activations). Pinned by SHA-256 in `configs/default.yaml` (`vectors.sha256`), value **to be filled at G1**. The main run refuses to start without a matching pin. Vectors are never re-extracted for the main run |
+| Trait vectors | `results/extract/trait_vectors.pt` from the 2026-11-19 Kaggle re-run of `phase4` at `675f7f6`, which passed gate v2 and reproduced the 2026-11-17 run. SHA-256 `5e12b0ba04f6b2a7f09355e9156795629b689bdf0739a1ae2c44af185ca402ca`, pinned in `configs/default.yaml` (`vectors.sha256`). The main run refuses to start without a matching file. Vectors are never re-extracted for the main run. The matching `extraction_activations.pt` comes from the same passes |
 
 ### 1.1 Extraction and L* (completed in Phase 4; recorded here)
 
@@ -164,7 +164,7 @@ Two-sided α = .05 and 80% power give a minimum detectable correlation of about 
 
 - **Phase 6 (main run):** the `main` command runs the 96 test personas and the baseline through the same SR/BC/IP code path as the dev pilot (`cmd_pilot`), with residual caching on and `require_pin=True`. The only Phase 6 code change allowed is that wiring.
 - **Phase 7 (analysis):** analysis code is written after this tag and must implement §2–§3 exactly. Any ambiguity or required change is logged in `DEVIATIONS.md` before the code that depends on it is run on test results.
-- **Before G1** (extraction set and dev personas only, no test data). Re-running the Phase 4 workflow (`phase4`: extract with gates on → dev pilot → diagnose) on this commit writes `trait_vectors.pt` and `extraction_activations.pt` from the same passes, and the provenance records the vectors' SHA-256. That hash goes in `vectors.sha256`. Alternatively, `extract-acts` adds activations to an existing vectors file and checks that they match (cos ≥ 0.999 at L*).
+- **Before G1 (done 2026-11-19; extraction set and dev personas only, no test data).** Re-running the Phase 4 workflow (`phase4`: extract with gates on → dev pilot → diagnose) on this commit writes `trait_vectors.pt` and `extraction_activations.pt` from the same passes, and the provenance records the vectors' SHA-256. That hash goes in `vectors.sha256`. Alternatively, `extract-acts` adds activations to an existing vectors file and checks that they match (cos ≥ 0.999 at L*).
 - **Re-run guard:** the re-run is accepted only if both gates pass and the selected layer is still 17. If the re-run selects a different layer, or a gate fails, stop and report to the owner; L* = 17 stays frozen and nothing is re-tuned. Re-run numbers (d′, steering ρ, dev diagnostics) are logged in `DECISIONS.md` next to the 2026-11-17 values.
 
 ## 6. Provenance
@@ -178,6 +178,6 @@ Owner, before approving:
 1. Check the H1–H5 wording against the brief's §7.
 2. Resolve the two **[G1 decision]** items: the clustering bootstrap (§3.0) and absolute vs signed heterotrait values (§3.2 H2).
 3. Decide whether the implicit persona structure (§1.4) is acceptable as is, or whether the implicit personas should be rebuilt with graded cues before the test run. Rebuilding is a stimulus change; it is allowed now because no test data exists yet.
-4. Supply the SHA-256 of the pinned `trait_vectors.pt`, printed by the extract stage and stored in `results/extract/provenance.json` as `summary.trait_vectors_sha256`, along with the re-run's extraction summary.
+4. ~~Supply the vectors' SHA-256.~~ Done 2026-11-19: re-run passed the guard (L* = 17, both gates); hash pinned (§1).
 
 On approval: commit, tag `prereg-v2`, then Phase 6.

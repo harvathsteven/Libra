@@ -10,9 +10,10 @@ layer:
   # Frozen 2026-11-17 from Kaggle extract (gate v2 passed).
   L_star: 17
 vectors:
-  # SHA-256 of results/extract/trait_vectors.pt from the Phase 4 Kaggle extract
-  # (gate v2 passed). Set at G1; the main run refuses to start without it.
-  sha256: null
+  # SHA-256 of results/extract/trait_vectors.pt from the 2026-11-19 Kaggle re-run
+  # of phase4 at 675f7f6 (gate v2 passed; reproduces 2026-11-17). The main run
+  # refuses to start without a matching file.
+  sha256: 5e12b0ba04f6b2a7f09355e9156795629b689bdf0739a1ae2c44af185ca402ca
 paths:
   stimuli_dir: stimuli
   results_dir: results
