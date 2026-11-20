@@ -176,6 +176,14 @@ Owner chose "A + B1". This rule is fixed **before** any run of it and will be re
 - **Carry into Phase 5 (preregistration):** (1) A_SR is acquiescence-prone (gate diagnostic); prereg how SR is scored and whether an acquiescence index is reported. (2) BC was the steering-validation criterion for the vectors, so IP–BC convergence (esp. A 0.99) is not fully independent evidence; prereg how it is interpreted. (3) E_IP has low between-persona SD (0.020); note as a risk for E IP validity.
 - **Next:** Phase 5 preregistration → HUMAN GATE G1 before any test persona run.
 
+### Phase 6 — main run (2026-11-19)
+
+- **Wiring (after `prereg-v2`, as allowed by prereg §5):** `main` runs the 96 test personas plus baseline through `_score_personas`, the same SR/BC/IP path the dev pilot now uses. It caches residuals, requires the pinned vectors and refuses to run unless L* = 17.
+- **Resume:** per persona, from `results/main/parts`; it refuses parts written at a different git commit.
+- **No outcomes at run time:** `main` reports only data quality in `main_quality.json` (option mass, item and condition exclusion counts, completeness, non-finite IP). It prints no scores, correlations or SDs, so the Phase 7 analysis code is written before outcomes are seen.
+- **Smoke test:** `tests/test_phase6_main.py`; all 31 tests pass.
+- **G2:** owner runs `STAGE = "main"` on Kaggle with `trait_vectors.pt` uploaded as dataset `libra-vectors`.
+
 ### Phase 5 — Preregistration (2026-11-18)
 
 - **prereg-v1 draft** (`d171e6e`, written by a separate Cursor session): tagged and pushed to the public remote before G1 review. Kept as a record and superseded; never used for any test run.

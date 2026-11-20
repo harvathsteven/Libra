@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
 import torch
 
@@ -206,110 +207,227 @@ def _load_L_star_and_vectors(
     return L_star, vectors, extract_dir
 
 
+def _score_personas(
+    cfg: dict[str, Any],
+    personas: list[dict[str, Any]],
+    out: Path,
+    *,
+    L_star: int,
+    vectors: dict[str, torch.Tensor],
+    resume: bool,
+) -> dict[str, pd.DataFrame]:
+    """Score SR/BC/IP for each persona, writing per-persona parts as it goes.
+
+    Parts live in ``out/parts`` and residuals in ``out/ip_residuals``. A persona
+    is complete once ``parts/<id>.done.json`` exists. With ``resume=True``
+    complete personas are skipped, but only if they were written at the same
+    git commit; otherwise the run refuses to mix code versions.
+    """
+    from trait_mtmm.provenance import git_commit
+
+    is_smoke = "smoke" in cfg
+    limits = _smoke_limits(cfg) if is_smoke else {}
+    stim = stimuli_dir(cfg)
+    parts = out / "parts"
+    residual_dir = out / "ip_residuals"
+    if not resume:
+        for d in (parts, residual_dir):
+            if d.exists():
+                for f in d.iterdir():
+                    f.unlink()
+    parts.mkdir(parents=True, exist_ok=True)
+    residual_dir.mkdir(parents=True, exist_ok=True)
+    commit = git_commit()
+
+    sr_items = load_ipip(stim, max_items=limits.get("max_sr_items") if is_smoke else None)
+    bc_items = load_bc(stim, max_items=limits.get("max_bc_items") if is_smoke else None)
+    probes = load_questions(stim / "probe_questions.txt")
+    if is_smoke:
+        probes = probes[: limits["max_probes"]]
+    prefill = cfg["scoring"].get("assistant_prefill") or ""
+    sr_format = str(cfg["scoring"].get("sr_format", "letters"))
+
+    todo = []
+    for persona in personas:
+        done = parts / f"{persona['persona_id']}.done.json"
+        if resume and done.exists():
+            prev = json.loads(done.read_text(encoding="utf-8")).get("git_commit")
+            if prev != commit:
+                raise SystemExit(
+                    f"{done} was written at {prev}, current commit is {commit}; "
+                    "refusing to mix code versions (clear the run directory to restart)"
+                )
+            continue
+        todo.append(persona)
+    print(f"Scoring {len(todo)} of {len(personas)} personas ({len(personas) - len(todo)} already done)")
+
+    loaded = None
+    for n, persona in enumerate(todo, 1):
+        if loaded is None:
+            loaded = load_model(
+                cfg["model"]["id"],
+                cfg["model"]["revision"],
+                dtype=cfg["model"]["dtype"],
+                device=cfg["model"]["device"],
+            )
+        pid = persona["persona_id"]
+        sr = run_sr_for_persona(
+            loaded, persona, sr_items, assistant_prefill=prefill, sr_format=sr_format
+        )
+        bc = run_bc_for_persona(
+            loaded, persona, bc_items, assistant_prefill=prefill, base_seed=cfg["seed"]
+        )
+        ip, residuals = run_ip_for_persona(
+            loaded,
+            persona,
+            probes,
+            vectors=vectors,
+            layer_hidden_index=L_star + 1,
+            return_residuals=True,
+        )
+        sr.to_parquet(parts / f"{pid}.sr.parquet", index=False)
+        bc.to_parquet(parts / f"{pid}.bc.parquet", index=False)
+        ip.to_parquet(parts / f"{pid}.ip.parquet", index=False)
+        torch.save({"persona_id": pid, "residuals": residuals}, residual_dir / f"{pid}.pt")
+        write_json(parts / f"{pid}.done.json", {"persona_id": pid, "git_commit": commit})
+        print(f"[{n}/{len(todo)}] {pid} done")
+
+    def gather(kind: str) -> pd.DataFrame:
+        return pd.concat(
+            [pd.read_parquet(parts / f"{p['persona_id']}.{kind}.parquet") for p in personas],
+            ignore_index=True,
+        )
+
+    sr_item, bc_item, ip_probe = gather("sr"), gather("bc"), gather("ip")
+    sr_agg, bc_agg, ip_agg = aggregate_sr(sr_item), aggregate_bc(bc_item), aggregate_ip(ip_probe)
+    wide = wide_condition_table(sr_agg, bc_agg, ip_agg)
+    tables = {
+        "sr_item": sr_item,
+        "bc_item": bc_item,
+        "ip_probe": ip_probe,
+        "sr_condition": sr_agg,
+        "bc_condition": bc_agg,
+        "ip_condition": ip_agg,
+        "condition_scores": wide,
+    }
+    for name, df in tables.items():
+        df.to_parquet(out / f"{name}.parquet", index=False)
+    return tables
+
+
 def cmd_pilot(cfg: dict[str, Any]) -> Path:
     """Run SR/BC/IP on personas (dev, or smoke subset of test)."""
     seed_everything(cfg["seed"])
     is_smoke = "smoke" in cfg
     limits = _smoke_limits(cfg) if is_smoke else {}
-    stim = stimuli_dir(cfg)
     out = results_dir(cfg) / ("pilot_smoke" if is_smoke else "pilot")
     out.mkdir(parents=True, exist_ok=True)
-
-    loaded = load_model(
-        cfg["model"]["id"],
-        cfg["model"]["revision"],
-        dtype=cfg["model"]["dtype"],
-        device=cfg["model"]["device"],
-    )
-    L_star, vectors, _ = _load_L_star_and_vectors(cfg)
-    layer_hidden_index = L_star + 1
-
-    which = "test" if is_smoke else "dev"
+    L_star, vectors, extract_dir = _load_L_star_and_vectors(cfg)
     personas = load_personas(
-        stim,
-        which=which,
+        stimuli_dir(cfg),
+        which="test" if is_smoke else "dev",
         max_personas=limits.get("max_personas") if is_smoke else None,
         include_baseline=False,
     )
-    sr_items = load_ipip(
-        stim, max_items=limits.get("max_sr_items") if is_smoke else None
-    )
-    bc_items = load_bc(
-        stim, max_items=limits.get("max_bc_items") if is_smoke else None
-    )
-    probes = load_questions(stim / "probe_questions.txt")
-    if is_smoke:
-        probes = probes[: limits["max_probes"]]
-
-    prefill = cfg["scoring"].get("assistant_prefill") or ""
-    sr_format = str(cfg["scoring"].get("sr_format", "letters"))
-    residual_dir = out / "ip_residuals"
-    residual_dir.mkdir(parents=True, exist_ok=True)
-    sr_parts, bc_parts, ip_parts = [], [], []
-    for persona in personas:
-        sr_parts.append(
-            run_sr_for_persona(
-                loaded,
-                persona,
-                sr_items,
-                assistant_prefill=prefill,
-                sr_format=sr_format,
-            )
-        )
-        bc_parts.append(
-            run_bc_for_persona(
-                loaded,
-                persona,
-                bc_items,
-                assistant_prefill=prefill,
-                base_seed=cfg["seed"],
-            )
-        )
-        ip_df, residuals = run_ip_for_persona(
-            loaded,
-            persona,
-            probes,
-            vectors=vectors,
-            layer_hidden_index=layer_hidden_index,
-            return_residuals=True,
-        )
-        ip_parts.append(ip_df)
-        torch.save(
-            {"persona_id": persona["persona_id"], "residuals": residuals},
-            residual_dir / f"{persona['persona_id']}.pt",
-        )
-
-    sr_item = pd.concat(sr_parts, ignore_index=True)
-    bc_item = pd.concat(bc_parts, ignore_index=True)
-    ip_probe = pd.concat(ip_parts, ignore_index=True)
-    sr_agg = aggregate_sr(sr_item)
-    bc_agg = aggregate_bc(bc_item)
-    ip_agg = aggregate_ip(ip_probe)
-    wide = wide_condition_table(sr_agg, bc_agg, ip_agg)
-
-    sr_item.to_parquet(out / "sr_item.parquet", index=False)
-    bc_item.to_parquet(out / "bc_item.parquet", index=False)
-    ip_probe.to_parquet(out / "ip_probe.parquet", index=False)
-    sr_agg.to_parquet(out / "sr_condition.parquet", index=False)
-    bc_agg.to_parquet(out / "bc_condition.parquet", index=False)
-    ip_agg.to_parquet(out / "ip_condition.parquet", index=False)
-    wide.to_parquet(out / "condition_scores.parquet", index=False)
-
-    summary = analysis_summary(wide)
+    tables = _score_personas(cfg, personas, out, L_star=L_star, vectors=vectors, resume=False)
+    summary = analysis_summary(tables["condition_scores"])
     write_json(
         out / "provenance.json",
         {
             **provenance_dict(cfg, stage="pilot"),
             "L_star": L_star,
-            "trait_vectors_sha256": sha256_file(
-                results_dir(cfg) / ("extract_smoke" if is_smoke else "extract") / "trait_vectors.pt"
-            ),
+            "trait_vectors_sha256": sha256_file(extract_dir / "trait_vectors.pt"),
             "n_personas": len(personas),
-            "assistant_prefill": prefill,
+            "assistant_prefill": cfg["scoring"].get("assistant_prefill") or "",
             "analysis": summary,
         },
     )
     print(json.dumps({"pilot": {"n_personas": len(personas), "L_star": L_star, **summary}}, indent=2))
+    return out
+
+
+def main_run_quality(tables: dict[str, pd.DataFrame], cfg: dict[str, Any]) -> dict[str, Any]:
+    """Data-quality summary for the main run. Deliberately reports no outcome
+    statistics (no scores, correlations or SDs): those wait for the Phase 7
+    analysis code (PREREGISTRATION.md §5)."""
+    drop_mass = float(cfg["scoring"]["drop_item_option_mass"])
+    drop_frac = float(cfg["scoring"]["drop_condition_item_frac"])
+    report: dict[str, Any] = {
+        "n_conditions": int(tables["condition_scores"]["persona_id"].nunique()),
+        "n_by_set": tables["condition_scores"]["persona_set"].value_counts().to_dict(),
+        "item_drop_threshold": drop_mass,
+        "condition_drop_frac": drop_frac,
+    }
+    for measure in ("sr", "bc"):
+        items = tables[f"{measure}_item"]
+        low = items["option_mass"] < drop_mass
+        per_cond = (
+            items.assign(low=low)
+            .groupby(["persona_id", "trait"])["low"]
+            .mean()
+        )
+        report[measure] = {
+            "mean_option_mass": float(items["option_mass"].mean()),
+            "min_option_mass": float(items["option_mass"].min()),
+            "n_items_below_threshold": int(low.sum()),
+            "n_condition_scores_excluded": int((per_cond > drop_frac).sum()),
+            "excluded": [f"{p}:{t}" for (p, t), v in per_cond.items() if v > drop_frac],
+        }
+    ip = tables["ip_probe"]
+    report["ip"] = {"n_nonfinite": int((~np.isfinite(ip["projection"].to_numpy(dtype=float))).sum())}
+    # Every condition must have every item / probe (one row per item, both orders inside).
+    complete = {}
+    for name, key in (("sr_item", "item_id"), ("bc_item", "item_id"), ("ip_probe", "probe_index")):
+        df = tables[name]
+        per = df.groupby(["persona_id", "trait"])[key].nunique().reset_index()
+        expected = df.groupby("trait")[key].nunique()
+        n_conditions = df["persona_id"].nunique()
+        complete[name] = bool(
+            (per[key].to_numpy() == per["trait"].map(expected).to_numpy()).all()
+            and len(per) == n_conditions * len(expected)
+        )
+    report["rows_complete"] = complete
+    return report
+
+
+def cmd_main(cfg: dict[str, Any]) -> Path:
+    """Phase 6 main run: 96 test personas + baseline (PREREGISTRATION.md §5).
+
+    Same SR/BC/IP code path as the dev pilot, residual caching on, pinned
+    vectors required, resumable per persona.
+    """
+    seed_everything(cfg["seed"])
+    is_smoke = "smoke" in cfg
+    limits = _smoke_limits(cfg) if is_smoke else {}
+    out = results_dir(cfg) / ("main_smoke" if is_smoke else "main")
+    out.mkdir(parents=True, exist_ok=True)
+    L_star, vectors, extract_dir = _load_L_star_and_vectors(cfg, require_pin=not is_smoke)
+    if not is_smoke:
+        blob_L = int(load_vectors(extract_dir / "trait_vectors.pt")["L_star"])
+        if L_star != 17 or blob_L != 17:
+            raise SystemExit(f"L* must be 17 (prereg-v2); config {L_star}, vectors {blob_L}")
+    personas = load_personas(stimuli_dir(cfg), which="test", include_baseline=True)
+    if is_smoke:
+        personas = personas[: limits["max_personas"]] + [
+            p for p in personas if p.get("set") == "baseline"
+        ]
+    elif len(personas) != 97:
+        raise SystemExit(f"Expected 97 test conditions, found {len(personas)}")
+    tables = _score_personas(cfg, personas, out, L_star=L_star, vectors=vectors, resume=True)
+    quality = main_run_quality(tables, cfg)
+    write_json(out / "main_quality.json", quality)
+    write_json(
+        out / "provenance.json",
+        {
+            **provenance_dict(cfg, stage="main"),
+            "L_star": L_star,
+            "trait_vectors_sha256": sha256_file(extract_dir / "trait_vectors.pt"),
+            "n_personas": len(personas),
+            "assistant_prefill": cfg["scoring"].get("assistant_prefill") or "",
+        },
+    )
+    print(json.dumps({"main_quality": quality}, indent=2))
+    print(f"Main run complete: {out}")
     return out
 
 
@@ -398,12 +516,6 @@ def cmd_smoke(cfg: dict[str, Any]) -> None:
     cmd_figures(cfg)
     out = results_dir(cfg) / "pilot_smoke" / "condition_scores.parquet"
     print(f"Smoke complete. Condition table: {out}")
-
-
-def cmd_main(cfg: dict[str, Any]) -> None:
-    raise SystemExit(
-        "main run is Phase 6 (after preregistration). Use phase4/pilot until then."
-    )
 
 
 def cmd_analyze(cfg: dict[str, Any]) -> None:
