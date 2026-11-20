@@ -186,7 +186,12 @@ Owner chose "A + B1". This rule is fixed **before** any run of it and will be re
 - **2026-11-19 — Phase 4 re-run on Kaggle at `675f7f6`** (owner ran `phase4`; extraction set and dev personas only). Re-run guard passed: L* = 17; d′ E 7.107, A 15.372; cos(E,A) 0.231; ‖h‖ at L* 104.6; BC ρ E 1.0 (Δ +0.216), A 1.0 (Δ +0.074); masses 0.989 / 0.991; secondary A SR balanced ρ −0.7, raw-agree 1.0. Dev diagnostics and dev MTMM identical to 2026-11-17 (SD E_IP 0.020; A BC–IP 0.99). Torch 2.11.0+cu130, transformers 5.20.2.
 - **Local checks of the re-run:** vectors recomputed from `extraction_activations.pt` match `trait_vectors.pt` (cos 1.0 at all 32 layers); split 64 train / 56 holdout per pole; cached dev residuals at L* reproduce `ip_probe` scores (max |Δ| 2e−7).
 - **Pinned vectors:** `vectors.sha256 = 5e12b0ba04f6b2a7f09355e9156795629b689bdf0739a1ae2c44af185ca402ca`. The re-run config was not merged: the bundled `default.yaml` had its comments stripped by `set_L_star` and its values match the repo.
-- **HUMAN GATE G1:** pending.
+- **HUMAN GATE G1 — passed (2026-11-19).** Owner: "use your prudence to make the best decisions and proceed to phase 6". Agent resolutions:
+  - H1–H5 wording kept as in v1; not verified against the brief.
+  - Verdicts require both the condition-level and the cluster bootstrap (12 implicit cue clusters), so they are conservative.
+  - H2 uses absolute heterotrait values.
+  - Implicit personas kept: a rebuild would be unpiloted stimuli.
+  - Tagged `prereg-v2`. No test persona run before the tag.
 
 ### Phase 3 — measures and smoke E2E (2026-11-16)
 

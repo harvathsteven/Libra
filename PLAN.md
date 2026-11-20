@@ -147,5 +147,6 @@ Full specifications for stimuli (Section 4), measurement (Section 5), phases and
 | 2 Stimuli | Done |
 | 3 Measures and vectors | Done (smoke E2E) |
 | 4 GPU extraction and dev pilot | Done (2026-11-17): gates v2 passed, L*=17; dev pilot acceptance passed |
-| 5 Preregistration | v2 draft written (`PREREGISTRATION.md`; v1 superseded); awaiting HUMAN GATE G1, then tag `prereg-v2` |
-| 6–8 | Not started (blocked on G1) |
+| 5 Preregistration | Done (2026-11-19): G1 passed; frozen at tag `prereg-v2` (v1 superseded) |
+| 6 Main run | In progress: `main` wired; awaiting Kaggle run (G2) |
+| 7–8 | Not started |

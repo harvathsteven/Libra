@@ -2,7 +2,7 @@
 
 Zero-cost construct-validity study of LLM personality measures: **self-report (SR)**, **behavioral choice (BC)**, and **internal projection (IP)** on one small open-weight chat model under shared persona conditions.
 
-**Status:** Phases 0–4 complete (L*=17; gate v2 + dev pilot passed). Phase 5 preregistration written — **HUMAN GATE G1:** approve the `PREREGISTRATION.md` v2 draft (to be tagged `prereg-v2`; `prereg-v1` is superseded) before any test-persona run. Do not publish.
+**Status:** Phases 0–4 complete (L*=17; gate v2 + dev pilot passed). Phase 5 done: preregistration frozen at tag `prereg-v2` (G1 passed 2026-11-19). Phase 6 main run in progress. Do not publish.
 
 ## Research question
 

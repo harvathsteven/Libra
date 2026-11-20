@@ -1,14 +1,14 @@
 # Preregistration — Trait MTMM Pilot (Libra)
 
-**Version:** v2 draft (supersedes the `prereg-v1` draft, commit `d171e6e`)
-**Date:** 2026-11-18
-**Status:** Awaiting HUMAN GATE G1. On approval this commit is tagged `prereg-v2`. No test persona is run before then.
+**Version:** v2 (supersedes the `prereg-v1` draft, commit `d171e6e`)
+**Date:** 2026-11-19
+**Status:** HUMAN GATE G1 passed 2026-11-19 (§7). Frozen at tag `prereg-v2`. No test persona had been run when it was tagged.
 
 `prereg-v1` was tagged and pushed before review. It stays as a public record of the first draft. It was never used for any test run and is superseded by this version. `DEVIATIONS.md` counts departures from `prereg-v2`.
 
 Dev-pilot numbers (N = 8) and extraction diagnostics informed the prompt format and the steering gate only. They do not inform hypotheses or decision rules. On the dev set, intended E and A levels correlate r = −0.57, so dev heterotrait values are confounded by design and are not evidence.
 
-Items marked **[G1 decision]** need the owner's choice before approval. Each one shows the drafted default.
+Items marked **[G1 decision]** were resolved at G1; each states the choice.
 
 ---
 
@@ -90,7 +90,11 @@ Variables per condition: `E_SR`, `E_BC`, `E_IP`, `A_SR`, `A_BC`, `A_IP`. T denot
 - A **95% interval** is the 2.5th–97.5th percentile interval. "Above zero" means its lower bound is > 0.
 - **Bootstrap p** (H3 only): p = min(1, 2 · min(#{d* ≤ 0}, #{d* ≥ 0}) / B).
 - Conjunctive hypotheses (H1, H2, H4) are supported for a trait only if every component passes. That is an intersection–union test, so components are not multiplicity-corrected. Each component is still reported on its own.
-- **[G1 decision] Clustering of implicit personas (§1.4).** Draft default: the condition-level bootstrap above is primary. A **cluster bootstrap** is preregistered as a robustness check. In it, the 12 implicit cue sentences are clusters, each explicit persona is its own cluster, and clusters are resampled with replacement (B = 10,000, seed 42). The report gives each verdict under both bootstraps and flags any disagreement. Alternative: make the cluster bootstrap primary for the implicit and pooled samples.
+- **[G1 decision] Clustering of implicit personas (§1.4): verdicts require both bootstraps.** Every interval, p value and verdict is computed twice:
+  - with the condition-level bootstrap above (the plan's method);
+  - with a **cluster bootstrap**: the 12 implicit cue sentences are clusters, each explicit persona is its own cluster (pooled: 44 clusters; implicit: 12; explicit: 32, i.e. identical to the condition-level bootstrap), clusters resampled with replacement, B = 10,000, `default_rng(42)`. For H5 the two sets are resampled independently (explicit by persona, implicit by cluster).
+
+  A component **passes only if it passes under both**. For H3 the larger of the two bootstrap p values is used before Holm. Both sets of results are reported. This is the conservative choice: with only 12 implicit cue clusters, intervals that treat the 64 implicit personas as independent would be too narrow.
 
 ### 3.1 Preliminary checks (descriptive, no pass/fail)
 
@@ -110,7 +114,7 @@ Hypothesis wording is from the plan's §7.2, as transcribed in `prereg-v1`. **Th
   *Rule:* for T in {E, A}, each of r(T_SR, T_BC), r(T_SR, T_IP), r(T_BC, T_IP) has a 95% interval above zero. H1 holds for T if all three do.
 
 - **H2 (discriminant validity):** for each trait, each same-trait, different-method correlation exceeds the different-trait, different-method correlations involving the same variables. Also report the comparison against different-trait, same-method correlations.
-  *Rule:* for each validity pair (Mi, Mj) of trait T, compute d = r(T_Mi, T_Mj) − |r(T_Mi, T′_Mj)| and d = r(T_Mi, T_Mj) − |r(T′_Mi, T_Mj)|. That is 3 pairs × 2 comparisons = 6 comparisons per trait. Each passes if its paired-bootstrap 95% interval is above zero, and H2 holds for T if all 6 pass. **[G1 decision]** Draft default: heterotrait values are taken as absolute values, so a strong negative heterotrait correlation does not count in favor of discriminant validity. Alternative: signed values, as in Campbell & Fiske (1959).
+  *Rule:* for each validity pair (Mi, Mj) of trait T, compute d = r(T_Mi, T_Mj) − |r(T_Mi, T′_Mj)| and d = r(T_Mi, T_Mj) − |r(T′_Mi, T_Mj)|. That is 3 pairs × 2 comparisons = 6 comparisons per trait. Each passes if its paired-bootstrap 95% interval is above zero, and H2 holds for T if all 6 pass. **[G1 decision]** Heterotrait values are taken as **absolute values**, so a strong negative heterotrait correlation does not count in favor of discriminant validity. This is stricter than the signed comparison of Campbell & Fiske (1959); the signed version is reported as secondary.
   *Secondary (reported, no verdict):* the same differences against the different-trait, same-method correlations r(T_Mi, T′_Mi) and r(T_Mj, T′_Mj). For IP, note the vector overlap from §1.4.
 
 - **H3 (key contrast, two-sided):** for each trait, r(IP, SR) differs from r(IP, BC).
@@ -171,13 +175,14 @@ Two-sided α = .05 and 80% power give a minimum detectable correlation of about 
 
 Every results file records the git commit (`prereg-v2` or a descendant that only adds the Phase 6 wiring and results), model id and revision, library versions, config path, seeds, and the trait-vector SHA-256. Item-level and condition-level parquet go under `results/`.
 
-## 7. HUMAN GATE G1
+## 7. HUMAN GATE G1 (passed 2026-11-19)
 
-Owner, before approving:
+The owner reviewed the v2 draft and delegated the open decisions to the agent ("use your prudence to make the best decisions and proceed to phase 6"). Resolutions:
 
-1. Check the H1–H5 wording against the brief's §7.
-2. Resolve the two **[G1 decision]** items: the clustering bootstrap (§3.0) and absolute vs signed heterotrait values (§3.2 H2).
-3. Decide whether the implicit persona structure (§1.4) is acceptable as is, or whether the implicit personas should be rebuilt with graded cues before the test run. Rebuilding is a stimulus change; it is allowed now because no test data exists yet.
-4. ~~Supply the vectors' SHA-256.~~ Done 2026-11-19: re-run passed the guard (L* = 17, both gates); hash pinned (§1).
+1. **H1–H5 wording** stays as transcribed in `prereg-v1`. It has not been checked against the owner's brief, which is not in the repository. The owner accepted it as is.
+2. **Bootstrap:** verdicts require both the condition-level and the cluster bootstrap (§3.0).
+3. **H2:** absolute heterotrait values (§3.2).
+4. **Implicit personas** are kept unchanged. A rebuilt set would be stimuli no dev persona had been run on, contrary to the dev-only rule for prompt choices. The 12-cue structure is handled by pole-coded manipulation checks (§3.1), the cluster bootstrap (§3.0) and the power caveat (§4).
+5. **Vectors** pinned (§1); re-run guard passed (§5).
 
-On approval: commit, tag `prereg-v2`, then Phase 6.
+After this tag: Phase 6 wiring only (§5), then the main run.
