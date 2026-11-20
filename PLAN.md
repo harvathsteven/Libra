@@ -150,4 +150,4 @@ Full specifications for stimuli (Section 4), measurement (Section 5), phases and
 | 5 Preregistration | Done (2026-11-19): G1 passed; frozen at tag `prereg-v2` (v1 superseded) |
 | 6 Main run | Done (2026-11-20): G2 passed; 97 conditions, 0 exclusions |
 | 7 Analysis | Done (2026-11-20): code `40433bf` committed before run; results in `results/analysis/`, verdicts in DECISIONS |
-| 8 Report | Done (2026-11-20): `REPORT.md` drafted; awaiting HUMAN GATE G3 (not pushed) |
+| 8 Report | Done (2026-11-20): `REPORT.md` released; G3 passed |

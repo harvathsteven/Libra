@@ -17,6 +17,7 @@ venv/
 results/**
 !results/.gitkeep
 figures/*.png
+!figures/main_*.png
 !figures/.gitkeep
 # Local HF cache / tokens never committed
 .hf_token

@@ -189,6 +189,7 @@ Owner chose "A + B1". This rule is fixed **before** any run of it and will be re
   - (1) push the report commit to the public remote;
   - (2) whether to commit `figures/main_*.png` (REPORT.md links them) and/or the small Phase 7 tables from `results/analysis/`, both currently gitignored;
   - (3) the H1–H5 wording is still unverified against the brief.
+- **HUMAN GATE G3 — passed (2026-11-20).** Owner: "push it and commit the figures". The six `figures/main_*.png` are committed, with a `.gitignore` exception. Results tables stay gitignored. The H1–H5 wording remains unverified against the brief.
 
 ### Phase 7 — analysis (2026-11-20)
 

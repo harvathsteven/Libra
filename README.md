@@ -2,7 +2,7 @@
 
 Zero-cost construct-validity study of LLM personality measures: **self-report (SR)**, **behavioral choice (BC)**, and **internal projection (IP)** on one small open-weight chat model under shared persona conditions.
 
-**Status:** Phases 0–8 complete. Preregistered at tag `prereg-v2`; main run and analysis done; results in `REPORT.md` (draft, awaiting owner review at G3). Do not publish.
+**Status:** Phases 0–8 complete. Preregistered at tag `prereg-v2`; results in [`REPORT.md`](REPORT.md) (G3 passed 2026-11-20).
 
 ## Research question
 
